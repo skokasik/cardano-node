@@ -39,10 +39,11 @@ import           Cardano.BM.Trace (Trace, appendName)
 import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Network.Block
 import qualified Ouroboros.Network.Block as Block
-import           Ouroboros.Network.Chain (genesisPoint, pointHash)
+import           Ouroboros.Network.Chain (genesisPoint)
 import qualified Ouroboros.Network.Chain as Chain
 import           Ouroboros.Network.NodeToClient as NodeToClient
 import           Ouroboros.Network.NodeToNode as NodeToNode
+import           Ouroboros.Network.Socket
 
 import           Ouroboros.Network.Protocol.BlockFetch.Codec
 import           Ouroboros.Network.Protocol.ChainSync.Codec
@@ -63,7 +64,7 @@ import           Ouroboros.Consensus.Util.STM
 import           Ouroboros.Consensus.Util.ThreadRegistry
 
 import           Ouroboros.Storage.ChainDB (ChainDB)
-import qualified Ouroboros.Storage.ChainDB as ChainDB
+import qualified Ouroboros.Storage.ChainDB as ChainDB hiding (openDB)
 import qualified Ouroboros.Storage.ChainDB.Mock as ChainDB
 
 import           Cardano.Node.CLI
@@ -140,7 +141,7 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
                     curNo = succ prevBlockNo
 
                     prevHash :: ChainHash blk
-                    prevHash = castHash (pointHash prevPoint)
+                    prevHash = castHash (Block.pointHash prevPoint)
 
                  -- The transactions we get are consistent; the only reason not
                  -- to include all of them would be maximum block size, which
@@ -162,6 +163,9 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
       let nodeParams :: NodeParams IO NodeAddress blk
           nodeParams = NodeParams
             { tracer             = tracer
+            , mempoolTracer      = contramap show tracer
+            , decisionTracer     = nullTracer
+            , fetchClientTracer  = nullTracer
             , threadRegistry     = registry
             , maxClockSkew       = ClockSkew 1
             , cfg                = pInfoConfig
@@ -182,7 +186,7 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
           networkApps =
             consensusNetworkApps
               nullTracer
-              nullTracer
+              (contramap show tracer) -- nullTracer
               kernel
               ProtocolCodecs
                 { pcChainSyncCodec =
@@ -259,8 +263,10 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
 
       -- serve local clients (including tx submission)
       localServer <-
-        forkLinked registry $
+        forkLinked registry $ do
+          connTable <- newConnectionTable
           NodeToClient.withServer
+            connTable
             myLocalAddr
             (\(DictVersion _) -> acceptEq)
             (muxLocalResponderNetworkApplication <$> networkAppNodeToClient)
@@ -268,8 +274,10 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
 
       -- serve downstream nodes
       peerServer <-
-        forkLinked registry $
+        forkLinked registry $ do
+          connTable <- newConnectionTable
           NodeToNode.withServer
+            connTable
             myAddr (\(DictVersion _) -> acceptEq)
             (muxResponderNetworkApplication <$> networkAppNodeToNode)
             wait
@@ -318,11 +326,11 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
 
       encodePoint' ::  Point blk -> Encoding
       encodePoint' =
-          Block.encodePoint $ Block.encodeChainHash demoEncodeHeaderHash
+          Block.encodePoint demoEncodeHeaderHash
 
       decodePoint' :: forall s. Decoder s (Point blk)
       decodePoint' =
-          Block.decodePoint $ Block.decodeChainHash demoDecodeHeaderHash
+          Block.decodePoint demoDecodeHeaderHash
 
 
 removeStaleLocalSocket :: FilePath -> IO ()
