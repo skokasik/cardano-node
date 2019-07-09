@@ -62,6 +62,7 @@
             (hsPkgs.directory)
             (hsPkgs.file-embed)
             (hsPkgs.formatting)
+            (hsPkgs.iproute)
             (hsPkgs.lens)
             (hsPkgs.mtl)
             (hsPkgs.network)

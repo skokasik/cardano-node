@@ -13,7 +13,6 @@
         "hedgehog" = (((hackage.hedgehog)."1.0").revisions).default;
         "micro-recursion-schemes" = (((hackage.micro-recursion-schemes)."5.0.2.2").revisions).default;
         "streaming-binary" = (((hackage.streaming-binary)."0.3.0.1").revisions).default;
-        "pretty-show" = (((hackage.pretty-show)."1.8.2").revisions).default;
         "linebreak" = (((hackage.linebreak)."1.0.0.3").revisions)."3152802008e06f8444d364f6e1047b412e3cb692c1382b1657a425d72a0cfd5f";
         "timers-tick" = (((hackage.timers-tick)."0.4.1.0").revisions)."27d345648b8e01fad48adf1dc0e870b19fabb03ccdf3ad0bc5acb57f5da6cb5c";
         } // {
@@ -46,6 +45,6 @@
       compiler.version = "8.6.5";
       compiler.nix-name = "ghc865";
       };
-  resolver = "lts-13.24";
+  resolver = "lts-13.26";
   compiler = "ghc-8.6.5";
   }
