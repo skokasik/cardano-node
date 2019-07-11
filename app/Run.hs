@@ -76,13 +76,14 @@ import           TraceAcceptor
 import           TxSubmission
 
 
--- | Peer identifier used in consensus application 
+-- | Peer identifier used in consensus application
 --
-newtype Peer = Peer { peerAddr :: SockAddr }
+data Peer = Peer { localAddr  :: SockAddr
+                 , remoteAddr :: SockAddr }
   deriving (Eq, Ord, Show)
 
 instance Condense Peer where
-    condense (Peer sockAddr) = show sockAddr
+    condense (Peer localAddr remoteAddr) = (show localAddr) ++ (show remoteAddr)
 
 
 runNode :: NodeCLIArguments -> Trace IO Text -> IO ()
@@ -295,7 +296,12 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
           connTable
           (contramap show tracer)
           -- IPv4 address
-          (Just $ nodeAddressToSockAddr myNodeAddress)
+          --
+          -- We can't share portnumber with our server since we run separate
+          -- 'MuxInitiatorApplication' and 'MuxResponderApplication'
+          -- applications instead of a 'MuxInitiatorAndResponderApplication'.
+          -- This means we don't utilise full duplex connection.
+          (Just $ Socket.SockAddrInet 0 0)
           -- no IPv6 address
           Nothing
           (const Nothing)
@@ -304,11 +310,13 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
               ispValency = length (producers nodeSetup)
             })
           (\sock -> do
-              sockAddr <- getPeerName sock
+              remoteAddr <- getPeerName sock
+              localAddr  <- getSocketName sock
               connectToNode'
                       (\(DictVersion codec) -> encodeTerm codec)
                       (\(DictVersion codec) -> decodeTerm codec)
-                      (muxInitiatorNetworkApplication (Peer sockAddr) <$> networkAppNodeToNode) sock)
+                      (muxInitiatorNetworkApplication
+                          (Peer localAddr remoteAddr) <$> networkAppNodeToNode) sock)
           wait
 
       void $ Async.waitAny [localServer, peerServer, subManager]
