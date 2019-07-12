@@ -26,8 +26,6 @@ import           Crypto.Random
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Functor.Contravariant (contramap)
 import qualified Data.List as List
-import qualified Data.Map.Strict as M
-import           Data.Maybe
 import           Data.Proxy (Proxy (..))
 import           Data.Semigroup ((<>))
 import           Data.Text (Text, pack)
@@ -37,6 +35,7 @@ import           System.Directory (removeFile)
 import           System.IO.Error (isDoesNotExistError)
 
 import           Control.Monad.Class.MonadAsync
+import           Control.Monad.Class.MonadSTM
 
 import           Cardano.BM.Data.Tracer (ToLogObject (..))
 import           Cardano.BM.Trace (Trace, appendName)
@@ -55,11 +54,12 @@ import           Ouroboros.Network.Protocol.Handshake.Type
 import           Ouroboros.Network.Protocol.Handshake.Version
 import           Ouroboros.Network.Protocol.LocalTxSubmission.Codec
 
-import           Ouroboros.Consensus.Block (BlockProtocol, Header)
+import           Ouroboros.Consensus.Block (BlockProtocol)
 import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.ChainSyncClient (ClockSkew (..))
 import           Ouroboros.Consensus.Demo
 import           Ouroboros.Consensus.Demo.Run
+import           Ouroboros.Consensus.Ledger.Abstract
 import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState)
 import           Ouroboros.Consensus.Node
 import           Ouroboros.Consensus.NodeId
@@ -67,6 +67,7 @@ import           Ouroboros.Consensus.NodeNetwork
 import           Ouroboros.Consensus.Protocol.Abstract
 import           Ouroboros.Consensus.Util.Condense
 import           Ouroboros.Consensus.Util.Orphans ()
+import           Ouroboros.Consensus.Util.STM
 import           Ouroboros.Consensus.Util.ThreadRegistry
 
 import           Ouroboros.Storage.ChainDB (ChainDB)
@@ -176,13 +177,18 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
                                proof
           }
 
-      let chainDbArgs = mkChainDbArgs pInfoConfig pInfoInitLedger registry
+      varTip <- atomically $ newTVar GenesisPoint
+      let chainDbArgs = mkChainDbArgs pInfoConfig pInfoInitLedger registry varTip
       chainDB :: ChainDB IO blk <- ChainDB.openDB chainDbArgs
+
+      -- Watch the tip of the Chain and store it in varTip
+      onEachChange registry id GenesisPoint (ChainDB.getTipPoint chainDB)
+        (atomically . writeTVar varTip)
 
       btime  <- realBlockchainTime registry slotDuration systemStart
       let nodeParams :: NodeParams IO Peer blk
           nodeParams = NodeParams
-            { tracer             = tracer
+            { tracer             = prefixTip varTip tracer
             , mempoolTracer      = contramap show tracer
             , decisionTracer     = nullTracer
             , fetchClientTracer  = nullTracer
@@ -342,11 +348,20 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
       decodePoint' =
           Block.decodePoint demoDecodeHeaderHash
 
+      prefixTip :: TVar IO (Point blk) -> Tracer IO String -> Tracer IO String
+      prefixTip varTip tr = Tracer $ \msg -> do
+          tip <- atomically $ readTVar varTip
+          let hash = case pointHash tip of
+                GenesisHash -> "genesis"
+                BlockHash h -> take 4 (condense h)
+          traceWith tr ("[" <> hash <> "] " <> msg)
+
       mkChainDbArgs :: NodeConfig (BlockProtocol blk)
                     -> ExtLedgerState blk
                     -> ThreadRegistry IO
+                    -> TVar IO (Point blk)
                     -> ChainDB.ChainDbArgs IO blk
-      mkChainDbArgs cfg initLedger registry = (ChainDB.defaultArgs dbPath)
+      mkChainDbArgs cfg initLedger registry varTip = (ChainDB.defaultArgs dbPath)
           { ChainDB.cdbBlocksPerFile    = 10
           , ChainDB.cdbDecodeBlock      = demoDecodeBlock       cfg
           , ChainDB.cdbDecodeChainState = demoDecodeChainState  (Proxy @blk)
@@ -365,7 +380,7 @@ handleSimpleNode p NodeCLIArguments{..} myNodeAddress (TopologyInfo myNodeId top
           , ChainDB.cdbMemPolicy        = defaultMemPolicy secParam
           , ChainDB.cdbNodeConfig       = cfg
           , ChainDB.cdbThreadRegistry   = registry
-          , ChainDB.cdbTracer           = readableChainDBTracer tracer
+          , ChainDB.cdbTracer           = readableChainDBTracer (prefixTip varTip tracer)
           , ChainDB.cdbValidation       = ValidateMostRecentEpoch
           , ChainDB.cdbGcDelay          = secondsToDiffTime 10
           }
@@ -392,7 +407,10 @@ removeStaleLocalSocket socketPath =
 -- human-readable trace messages.
 readableChainDBTracer
     :: forall m blk.
-       (Monad m, HasHeader (Header blk), Condense (HeaderHash blk))
+       ( Monad m
+       , Condense (HeaderHash blk)
+       , ProtocolLedgerView blk
+       )
     => Tracer m String -> Tracer m (ChainDB.TraceEvent blk)
 readableChainDBTracer tracer = Tracer $ \case
     ChainDB.TraceAddBlockEvent ev -> case ev of
