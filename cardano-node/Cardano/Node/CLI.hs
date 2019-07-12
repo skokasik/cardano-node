@@ -40,6 +40,7 @@ import           Ouroboros.Consensus.BlockchainTime
 import           Ouroboros.Consensus.Demo
 import           Ouroboros.Consensus.Demo.Run
 import           Ouroboros.Consensus.NodeId (CoreNodeId (..), NodeId (..))
+import           Ouroboros.Consensus.Protocol.PBFT
 import           Ouroboros.Consensus.Util
 
 import           Cardano.Binary (Annotated (..))
@@ -78,13 +79,26 @@ fromProtocol MockPBFT =
     case runDemo p of
       Dict -> return $ SomeProtocol p
   where
-    p = DemoMockPBFT defaultDemoPBftParams
+    p = DemoMockPBFT defaultDemoPBftParams'
 fromProtocol RealPBFT =
     case runDemo p of
       Dict -> return $ SomeProtocol p
   where
-    p = DemoRealPBFT defaultDemoPBftParams genesisConfig
+    p = DemoRealPBFT defaultDemoPBftParams' genesisConfig
     genesisConfig = Dummy.dummyConfig
+
+-- | When we're killing and restarting nodes in the demo, we won't have all
+-- nodes running at all times. This means that a node might end up signing too
+-- many blocks in the window, after which all blocks produced from that point
+-- will be invalid because of the 'PBftExceededSignThreshold' error, stopping
+-- all progress.
+--
+-- So for demo purposes, increase the signature threshold to 1.0, so that we
+-- never get 'PBftExceededSignThreshold' in case we run too long without all
+-- three nodes online.
+defaultDemoPBftParams' :: PBftParams
+defaultDemoPBftParams' = defaultDemoPBftParams { pbftSignatureThreshold = 1.0 }
+
 
 -- Node can be run in two modes.
 data ViewMode =
