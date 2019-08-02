@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RUNNER=${RUNNER:-cabal new-run -- cardano-node}
+RUNNER=${RUNNER:-stack exec -- cardano-node}
 TOPOLOGY=${TOPOLOGY:-"configuration/topology-proxy-follower.json"}
 
 ARGS=(

@@ -290,8 +290,8 @@ handleSimpleNode p NodeCLIArguments{..}
                     codecLocalTxSubmission
                       nodeEncodeGenTx
                       nodeDecodeGenTx
-                      Serialise.encode
-                      Serialise.decode
+                      undefined
+                      undefined
 
                 }
               (protocolHandlers nodeParams kernel)
