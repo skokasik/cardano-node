@@ -63,6 +63,8 @@ data TraceOptions = TraceOptions {
     -- ^ trace chain syn messages
     , traceTxSubmission   :: !Bool
     -- ^ trace tx submission messages
+    , traceHandshake      :: !Bool
+    -- ^ trace handshake messages
     , traceFetchDecisions :: !Bool
     -- ^ trace fetch decisions; it links to 'decisionTracer' in 'NodeParams'
     , traceFetchClient    :: !Bool
@@ -80,6 +82,7 @@ parseTraceOptions =
     <$> parseTraceChainDB
     <*> parseTraceChainSync
     <*> parseTraceTxSubmission
+    <*> parseTraceHandshake
     <*> parseTraceFetchDecisions
     <*> parseTraceFetchClient
     <*> parseTraceTxInbound
@@ -181,6 +184,13 @@ parseTraceTxSubmission =
     switch (
          long "trace-tx-submission"
       <> help "Trace tx-submission protocol messages."
+    )
+
+parseTraceHandshake :: Parser Bool
+parseTraceHandshake =
+    switch (
+         long "trace-handshake"
+      <> help "Trace handshake protocol messages."
     )
 
 parseTraceFetchDecisions :: Parser Bool

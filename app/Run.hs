@@ -25,7 +25,8 @@ module Run (
 import           Codec.CBOR.Read (DeserialiseFailure)
 import           Codec.CBOR.Decoding (Decoder)
 import           Codec.CBOR.Encoding (Encoding)
-import qualified Codec.Serialise as Serialise (decode, encode)
+import qualified Codec.CBOR.Term as CBOR
+import qualified Codec.Serialise as Serialise
 import           Codec.SerialiseTerm
 import qualified Control.Concurrent.Async as Async
 import           Control.Exception
@@ -36,6 +37,7 @@ import qualified Data.ByteString.Char8 as BSC
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Either (partitionEithers)
 import           Data.Functor.Contravariant (contramap)
+import           Data.Typeable (Typeable)
 import qualified Data.List as List
 import           Data.Proxy (Proxy (..))
 import           Data.Semigroup ((<>))
@@ -62,6 +64,7 @@ import           Cardano.Shell.Constants.Types (CardanoConfiguration (..),)
 import           Cardano.Shell.Features.Logging (LoggingLayer (..))
 
 import           Network.TypedProtocol.Driver (TraceSendRecv)
+import           Network.TypedProtocol.Driver.ByteLimit (DecoderFailureOrTooMuchInput)
 
 import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Network.Block
@@ -390,6 +393,7 @@ handleSimpleNode p NodeCLIArguments{..}
               connectToNode'
                 (\(DictVersion codec) -> encodeTerm codec)
                 (\(DictVersion codec) -> decodeTerm codec)
+                (tracerHandshake nodeTraces)
                 Peer
                 (initiatorNetworkApplication <$> networkAppNodeToNode)
                 sock)
@@ -423,6 +427,7 @@ handleSimpleNode p NodeCLIArguments{..}
               connectToNode'
                 (\(DictVersion codec) -> encodeTerm codec)
                 (\(DictVersion codec) -> decodeTerm codec)
+                (tracerHandshake nodeTraces)
                 Peer
                 (initiatorNetworkApplication <$> networkAppNodeToNode)
                 sock)
@@ -603,6 +608,11 @@ data Traces peer blk = Traces {
     , tracerTxSubmission
       :: (Tracer IO (TraceSendRecv (BlockFetch blk) peer DeserialiseFailure))
 
+    -- | trace protocol handshake messages
+    --
+    , tracerHandshake
+      :: forall vNumber . (Ord vNumber, Enum vNumber, Serialise.Serialise vNumber, Typeable vNumber, Show vNumber) => (Tracer IO (TraceSendRecv (Handshake vNumber CBOR.Term) Peer (DecoderFailureOrTooMuchInput DeserialiseFailure)))
+
     -- | trace ip subscription manager
     --
     -- TODO: export types in `ouroboros-network`
@@ -646,6 +656,9 @@ getNodeTraces traceOptions tracer = Traces
     , tracerChainSync
         = enableTracer (traceChainSync traceOptions)
         $ withName "ChainSyncProtocol" tracer
+    , tracerHandshake
+        = enableTracer (traceHandshake traceOptions)
+        $ withName "HandshakeProtocol" tracer
     , tracerTxSubmission
         = enableTracer (traceTxSubmission traceOptions)
         $ withName "TxSubmissionProtocol" tracer
