@@ -57,6 +57,7 @@ import           Ouroboros.Network.Block
 import qualified Ouroboros.Network.Block as Block
 import           Ouroboros.Network.NodeToClient as NodeToClient
 import           Ouroboros.Network.NodeToNode as NodeToNode
+import           Ouroboros.Network.Snocket (socketSnocket)
 import           Ouroboros.Network.Socket
 import           Ouroboros.Network.Subscription.Common
 import           Ouroboros.Network.Subscription.Dns
@@ -339,7 +340,8 @@ handleSimpleNode p NodeCLIArguments{..}
               networkApps
 
       let myLocalSockPath = localSocketFilePath myNodeId
-          myLocalAddr     = localSocketAddrInfo myLocalSockPath
+          myLocalSnocket  = socketSnocket Socket.AF_UNIX
+          myLocalAddr     = Socket.SockAddrUnix myLocalSockPath
       removeStaleLocalSocket myLocalSockPath
 
       -- serve local clients (including tx submission)
@@ -348,19 +350,23 @@ handleSimpleNode p NodeCLIArguments{..}
           connTable <- newConnectionTable
           NodeToClient.withServer
             connTable
+            myLocalSnocket
             myLocalAddr
             Peer
             (\(DictVersion _) -> acceptEq)
             (localResponderNetworkApplication <$> networkAppNodeToClient)
             wait
 
+      let myAddr = nodeAddressToSockAddr myNodeAddress
+          mySnocket = socketSnocket (sockAddrFamily myAddr)
       -- serve downstream nodes
       connTable <- newConnectionTable
       peerServer <-
         forkLinked registry $ do
           NodeToNode.withServer
             connTable
-            (nodeAddressInfo myNodeAddress)
+            mySnocket
+            myAddr
             Peer
             (\(DictVersion _) -> acceptEq)
             (responderNetworkApplication <$> networkAppNodeToNode)

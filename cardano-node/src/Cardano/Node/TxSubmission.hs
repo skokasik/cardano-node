@@ -10,7 +10,6 @@ module Cardano.Node.TxSubmission (
       command'
     , handleTxSubmission
     , localSocketFilePath
-    , localSocketAddrInfo
     ) where
 import           Cardano.Prelude hiding (ByteString, option, threadDelay)
 import           Prelude (String)
@@ -58,6 +57,7 @@ import           Ouroboros.Network.Protocol.ChainSync.Client
 import           Ouroboros.Network.Protocol.ChainSync.Codec
 import           Ouroboros.Network.Protocol.Handshake.Version
 import           Ouroboros.Network.NodeToClient
+import           Ouroboros.Network.Snocket (socketSnocket)
 
 import           Cardano.Node.CLI
 
@@ -112,13 +112,14 @@ submitTx :: ( RunDemo blk
          -> IO ()
 submitTx pInfoConfig nodeId tx tracer =
     connectTo
+      (socketSnocket Socket.AF_UNIX)
       nullTracer
       (,)
       (localInitiatorNetworkApplication tracer pInfoConfig tx)
       Nothing
       addr
   where
-    addr = localSocketAddrInfo (localSocketFilePath nodeId)
+    addr = Socket.SockAddrUnix (localSocketFilePath nodeId)
 
 localInitiatorNetworkApplication
   :: forall blk m peer.
@@ -212,12 +213,3 @@ localSocketFilePath :: NodeId -> FilePath
 localSocketFilePath (CoreId  n) = "node-core-" ++ show n ++ ".socket"
 localSocketFilePath (RelayId n) = "node-relay-" ++ show n ++ ".socket"
 
-localSocketAddrInfo :: FilePath -> Socket.AddrInfo
-localSocketAddrInfo socketPath =
-    Socket.AddrInfo
-      []
-      Socket.AF_UNIX
-      Socket.Stream
-      Socket.defaultProtocol
-      (Socket.SockAddrUnix socketPath)
-      Nothing

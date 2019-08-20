@@ -46,6 +46,7 @@ import           Ouroboros.Network.Protocol.ChainSync.Client
 import           Ouroboros.Network.Protocol.ChainSync.Codec
 import           Ouroboros.Network.Protocol.Handshake.Version
 import           Ouroboros.Network.NodeToClient
+import           Ouroboros.Network.Snocket (socketSnocket)
 
 import           Cardano.Node.Tracers (TraceConstraints)
 
@@ -65,12 +66,13 @@ runWalletClient ptcl nid numCoreNodes tracer = do
                        nid
                        ptcl
 
-        addr = localSocketAddrInfo (localSocketFilePath nid)
+        addr = Socket.SockAddrUnix (localSocketFilePath nid)
 
         chainSyncTracer = contramap show tracer
         localTxSubmissionTracer = contramap show tracer
 
     connectTo
+      (socketSnocket Socket.AF_UNIX)
       nullTracer
       (,)
       (localInitiatorNetworkApplication
@@ -215,13 +217,3 @@ localChainSyncCodec pInfoConfig =
 --
 localSocketFilePath :: CoreNodeId -> FilePath
 localSocketFilePath (CoreNodeId  n) = "node-core-" ++ show n ++ ".socket"
-
-localSocketAddrInfo :: FilePath -> Socket.AddrInfo
-localSocketAddrInfo socketPath =
-    Socket.AddrInfo
-      []
-      Socket.AF_UNIX
-      Socket.Stream
-      Socket.defaultProtocol
-      (Socket.SockAddrUnix socketPath)
-      Nothing

@@ -60,6 +60,7 @@ import           Ouroboros.Network.Protocol.ChainSync.Client
 import           Ouroboros.Network.Protocol.ChainSync.Codec
 import           Ouroboros.Network.Protocol.Handshake.Version
 import           Ouroboros.Network.NodeToClient
+import           Ouroboros.Network.Snocket (socketSnocket)
 
 import           Cardano.Node.Tracers (TraceConstraints)
 
@@ -93,8 +94,11 @@ runChairman ptcl nids numCoreNodes securityParam maxBlockNo tracer = do
               protocolInfo numCoreNodes
                            coreNodeId
                            ptcl
+            mySnocket   = socketSnocket Socket.AF_UNIX
+            myLocalAddr = Socket.SockAddrUnix $ localSocketFilePath coreNodeId
 
         in connectTo
+            mySnocket
             nullTracer
             (,)
             (localInitiatorNetworkApplication
@@ -107,7 +111,7 @@ runChairman ptcl nids numCoreNodes securityParam maxBlockNo tracer = do
               nullTracer
               pInfoConfig)
             Nothing
-            (localSocketAddrInfo (localSocketFilePath coreNodeId))
+            myLocalAddr
           `catch` handleMuxError chainsVar coreNodeId
   where
     -- catch 'MuxError'; it will be thrown if a node shuts down closing the
@@ -460,12 +464,3 @@ localChainSyncCodec pInfoConfig =
 localSocketFilePath :: CoreNodeId -> FilePath
 localSocketFilePath (CoreNodeId  n) = "node-core-" ++ show n ++ ".socket"
 
-localSocketAddrInfo :: FilePath -> Socket.AddrInfo
-localSocketAddrInfo socketPath =
-    Socket.AddrInfo
-      []
-      Socket.AF_UNIX
-      Socket.Stream
-      Socket.defaultProtocol
-      (Socket.SockAddrUnix socketPath)
-      Nothing
