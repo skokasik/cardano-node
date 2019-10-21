@@ -6,13 +6,13 @@
 {-# LANGUAGE RankNTypes #-}
 
 import           Cardano.Prelude hiding (option)
-import           Prelude (String, read)
+import           Prelude (read)
 
 import qualified Data.IP as IP
 import           Data.Semigroup ((<>))
 import           Network.Socket (PortNumber)
-import           Options.Applicative ( Parser, auto, flag, help, long
-                                     , metavar, option, str, value)
+import           Options.Applicative ( Parser, auto, flag, help, helper,
+                                       long, metavar, option, str, value)
 import qualified Options.Applicative as Opt
 
 import           Cardano.Shell.Lib (runCardanoApplicationWithFeatures)
@@ -20,7 +20,6 @@ import           Cardano.Shell.Types (CardanoApplication (..),
                                       CardanoFeature (..),)
 import qualified Ouroboros.Consensus.BlockchainTime as Consensus
 
-import           Cardano.Common.Help
 import           Cardano.Common.Parsers
 import           Cardano.Config.Protocol
 import           Cardano.Config.CommonCLI
@@ -37,13 +36,16 @@ import           Cardano.Tracing.Tracers
 
 main :: IO ()
 main = do
-    cli <- Opt.execParser opts
+    cli <- Opt.customExecParser p opts
 
     (features, nodeLayer) <- initializeAllFeatures cli pcc env
 
     runCardanoApplicationWithFeatures features (cardanoApplication nodeLayer)
 
     where
+      p :: Opt.ParserPrefs
+      p = Opt.prefs Opt.showHelpOnEmpty
+
       pcc :: PartialCardanoConfiguration
       pcc = mainnetConfiguration
 
@@ -55,36 +57,11 @@ main = do
 
       opts :: Opt.ParserInfo NodeCLI
       opts =
-        Opt.info (nodeCliParser
-                  <**> helperBrief "help" "Show this help text" nodeCliHelpMain
-                  <**> helperBrief "help-tracing" "Show help for tracing options" cliHelpTracing
-                  <**> helperBrief "help-advanced" "Show help for advanced options" cliHelpAdvanced)
+        Opt.info (nodeCliParser <**> helper)
           ( Opt.fullDesc <>
             Opt.progDesc "Start node of the Cardano blockchain."
           )
 
-      helperBrief :: String -> String -> String -> Parser (a -> a)
-      helperBrief l d helpText = Opt.abortOption (Opt.InfoMsg helpText) $ mconcat
-        [ Opt.long l
-        , Opt.help d ]
-
-      nodeCliHelpMain :: String
-      nodeCliHelpMain = renderHelpDoc 80 $
-        parserHelpHeader "cardano-node" nodeCliParser
-        <$$> ""
-        <$$> parserHelpOptions nodeCliParser
-
-      cliHelpTracing :: String
-      cliHelpTracing = renderHelpDoc 80 $
-        "Additional tracing options:"
-        <$$> ""
-        <$$> parserHelpOptions cliTracingParser
-
-      cliHelpAdvanced :: String
-      cliHelpAdvanced = renderHelpDoc 80 $
-        "Advanced options:"
-        <$$> ""
-        <$$> parserHelpOptions parseCommonCLIAdvanced
 
 initializeAllFeatures
   :: NodeCLI
@@ -122,16 +99,16 @@ data NodeCLI = NodeCLI !PartialCardanoConfiguration
 -- | The product parser for all the CLI arguments.
 nodeCliParser :: Parser NodeCLI
 nodeCliParser = do
-  topInfo <- lastOption $ parseTopologyInfo "PBFT node ID to assume."
-  nAddr <- lastOption parseNodeAddress
   ptcl <- ( parseProtocolBFT
           <|> parseProtocolByron
           <|> parseProtocolMockPBFT
           <|> parseProtocolPraos
           <|> parseProtocolRealPBFT
           )
+  topInfo <- lastOption $ parseTopologyInfo "PBFT node ID to assume."
+  nAddr <- parseNodeAddress
   vMode <- parseViewMode
-  logConfigFp <- lastOption parseLogConfigFile
+  logConfigFp <- parseLogConfigFile
   logMetrics <- parseLogMetrics
   dbPath <- parseDbPath
   genPath <- parseGenesisPath
@@ -208,8 +185,8 @@ nodeCliParser = do
 cliTracingParser :: Parser (Last TraceOptions)
 cliTracingParser = Last . Just <$> parseTraceOptions Opt.hidden
 
-parseNodeAddress :: Parser NodeAddress
-parseNodeAddress = NodeAddress <$> parseHostAddr <*> parsePort
+parseNodeAddress :: Parser (Last NodeAddress)
+parseNodeAddress = lastOption $ NodeAddress <$> parseHostAddr <*> parsePort
 
 parseHostAddr :: Parser (Maybe IP.IP)
 parseHostAddr =

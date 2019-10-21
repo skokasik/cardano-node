@@ -33,6 +33,7 @@ import           Ouroboros.Consensus.NodeId (NodeId(..), CoreNodeId(..))
 import           Ouroboros.Consensus.NodeNetwork (ProtocolTracers'(..))
 import qualified Ouroboros.Consensus.Node.Tracers as Consensus
 
+import           Cardano.Config.CommonCLI (lastStrOption)
 import           Cardano.Config.Orphanage
 import           Cardano.Config.Protocol
 import           Cardano.Config.Topology
@@ -148,9 +149,9 @@ parseTopologyFile =
          <> metavar "FILEPATH"
          <> help "The path to a file describing the topology."
     )
-parseLogConfigFile :: Parser FilePath
+parseLogConfigFile :: Parser (Last FilePath)
 parseLogConfigFile =
-  strOption
+  lastStrOption
     ( long "log-config"
     <> metavar "LOGCONFIG"
     <> help "Configuration file for logging"
