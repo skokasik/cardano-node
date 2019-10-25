@@ -33,7 +33,6 @@ import           Cardano.Prelude hiding (option)
 
 import           Network.Socket (PortNumber)
 import           Options.Applicative
-import qualified Options.Applicative as Opt
 
 import           Cardano.BM.Data.Tracer (TracingVerbosity (..))
 import           Cardano.Config.Logging (LoggingCLIArguments(..))
@@ -55,7 +54,7 @@ import           Cardano.Config.Types (ConfigYamlFilePath(..), DbFile(..),
 -- Common command line parsers
 
 cliTracingParser :: Parser (Last TraceOptions)
-cliTracingParser = Last . Just <$> parseTraceOptions Opt.hidden
+cliTracingParser = Last . Just <$> parseTraceOptions
 
 
 nodeProtocolModeParser  :: Parser NodeProtocolMode
@@ -325,233 +324,230 @@ loggingParser =
       False
 
 -- | The parser for the logging specific arguments.
-parseTraceOptions :: MParser TraceOptions
-parseTraceOptions m = TraceOptions
-  <$> parseTracingVerbosity m
-  <*> parseTraceChainDB m
-  <*> parseConsensusTraceOptions m
-  <*> parseProtocolTraceOptions m
-  <*> parseTraceIpSubscription m
-  <*> parseTraceDnsSubscription m
-  <*> parseTraceDnsResolver m
-  <*> parseTraceErrorPolicy m
-  <*> parseTraceMux m
+parseTraceOptions :: Parser TraceOptions
+parseTraceOptions = TraceOptions
+  <$> parseTracingVerbosity
+  <*> parseTraceChainDB
+  <*> parseConsensusTraceOptions
+  <*> parseProtocolTraceOptions
+  <*> parseTraceIpSubscription
+  <*> parseTraceDnsSubscription
+  <*> parseTraceDnsResolver
+  <*> parseTraceErrorPolicy
+  <*> parseTraceMux
 
-parseTraceBlockFetchClient :: MParser Bool
-parseTraceBlockFetchClient m =
+parseTraceBlockFetchClient :: Parser Bool
+parseTraceBlockFetchClient  =
     switch (
          long "trace-block-fetch-client"
       <> help "Trace BlockFetch client."
-      <> m
+
     )
 
-parseTraceBlockFetchServer :: MParser Bool
-parseTraceBlockFetchServer m =
+parseTraceBlockFetchServer :: Parser Bool
+parseTraceBlockFetchServer =
     switch (
          long "trace-block-fetch-server"
       <> help "Trace BlockFetch server."
-      <> m
+
     )
 
-parseTracingVerbosity :: MParser TracingVerbosity
-parseTracingVerbosity m = asum [
+parseTracingVerbosity :: Parser TracingVerbosity
+parseTracingVerbosity =
   flag' MinimalVerbosity (
       long "tracing-verbosity-minimal"
         <> help "Minimal level of the rendering of captured items"
-        <> m)
+        )
     <|>
   flag' MaximalVerbosity (
       long "tracing-verbosity-maximal"
         <> help "Maximal level of the rendering of captured items"
-        <> m)
+        )
     <|>
   flag NormalVerbosity NormalVerbosity (
       long "tracing-verbosity-normal"
         <> help "the default level of the rendering of captured items"
-        <> m)
-  ]
+        )
 
-parseTraceChainDB :: MParser Bool
-parseTraceChainDB m =
+
+parseTraceChainDB :: Parser Bool
+parseTraceChainDB =
     switch (
          long "trace-chain-db"
       <> help "Verbose tracer of ChainDB."
-      <> m
+
     )
 
-parseConsensusTraceOptions :: (forall a b. Opt.Mod a b) -> Parser ConsensusTraceOptions
-parseConsensusTraceOptions m = Consensus.Tracers
-  <$> (Const <$> parseTraceChainSyncClient m)
-  <*> (Const <$> parseTraceChainSyncHeaderServer m)
-  <*> (Const <$> parseTraceChainSyncBlockServer m)
-  <*> (Const <$> parseTraceBlockFetchDecisions m)
-  <*> (Const <$> parseTraceBlockFetchClient m)
-  <*> (Const <$> parseTraceBlockFetchServer m)
-  <*> (Const <$> parseTraceTxInbound m)
-  <*> (Const <$> parseTraceTxOutbound m)
-  <*> (Const <$> parseTraceLocalTxSubmissionServer m)
-  <*> (Const <$> parseTraceMempool m)
-  <*> (Const <$> parseTraceForge m)
+parseConsensusTraceOptions :: Parser ConsensusTraceOptions
+parseConsensusTraceOptions = Consensus.Tracers
+  <$> (Const <$> parseTraceChainSyncClient )
+  <*> (Const <$> parseTraceChainSyncHeaderServer )
+  <*> (Const <$> parseTraceChainSyncBlockServer)
+  <*> (Const <$> parseTraceBlockFetchDecisions)
+  <*> (Const <$> parseTraceBlockFetchClient)
+  <*> (Const <$> parseTraceBlockFetchServer)
+  <*> (Const <$> parseTraceTxInbound)
+  <*> (Const <$> parseTraceTxOutbound)
+  <*> (Const <$> parseTraceLocalTxSubmissionServer)
+  <*> (Const <$> parseTraceMempool)
+  <*> (Const <$> parseTraceForge)
 
-type MParser a = (forall b c. Opt.Mod b c) -> Parser a
-
-parseTraceBlockFetchDecisions :: MParser Bool
-parseTraceBlockFetchDecisions m =
+parseTraceBlockFetchDecisions :: Parser Bool
+parseTraceBlockFetchDecisions =
     switch (
          long "trace-block-fetch-decisions"
       <> help "Trace BlockFetch decisions made by the BlockFetch client."
-      <> m
+
     )
 
-parseTraceChainSyncClient :: MParser Bool
-parseTraceChainSyncClient m =
+parseTraceChainSyncClient :: Parser Bool
+parseTraceChainSyncClient =
     switch (
          long "trace-chain-sync-client"
       <> help "Trace ChainSync client."
-      <> m
+
     )
 
-parseTraceChainSyncBlockServer :: MParser Bool
-parseTraceChainSyncBlockServer m =
+parseTraceChainSyncBlockServer :: Parser Bool
+parseTraceChainSyncBlockServer =
     switch (
          long "trace-chain-sync-block-server"
       <> help "Trace ChainSync server (blocks)."
-      <> m
+
     )
 
-parseTraceChainSyncHeaderServer :: MParser Bool
-parseTraceChainSyncHeaderServer m =
+parseTraceChainSyncHeaderServer :: Parser Bool
+parseTraceChainSyncHeaderServer =
     switch (
          long "trace-chain-sync-header-server"
       <> help "Trace ChainSync server (headers)."
-      <> m
+
     )
 
-parseTraceTxInbound :: MParser Bool
-parseTraceTxInbound m =
+parseTraceTxInbound :: Parser Bool
+parseTraceTxInbound =
     switch (
          long "trace-tx-inbound"
       <> help "Trace TxSubmission server (inbound transactions)."
-      <> m
+
     )
 
-parseTraceTxOutbound :: MParser Bool
-parseTraceTxOutbound m =
+parseTraceTxOutbound :: Parser Bool
+parseTraceTxOutbound =
     switch (
          long "trace-tx-outbound"
       <> help "Trace TxSubmission client (outbound transactions)."
-      <> m
+
     )
 
-parseTraceLocalTxSubmissionServer :: MParser Bool
-parseTraceLocalTxSubmissionServer m =
+parseTraceLocalTxSubmissionServer :: Parser Bool
+parseTraceLocalTxSubmissionServer =
     switch (
          long "trace-local-tx-submission-server"
       <> help "Trace local TxSubmission server."
-      <> m
+
     )
 
-parseTraceMempool :: MParser Bool
-parseTraceMempool m =
+parseTraceMempool :: Parser Bool
+parseTraceMempool =
     switch (
          long "trace-mempool"
       <> help "Trace mempool."
-      <> m
+
     )
 
-parseTraceForge :: MParser Bool
-parseTraceForge m =
+parseTraceForge :: Parser Bool
+parseTraceForge =
     switch (
          long "trace-forge"
       <> help "Trace block forging."
-      <> m
+
     )
 
-parseTraceChainSyncProtocol :: MParser Bool
-parseTraceChainSyncProtocol m =
+parseTraceChainSyncProtocol :: Parser Bool
+parseTraceChainSyncProtocol =
     switch (
          long "trace-chain-sync-protocol"
       <> help "Trace ChainSync protocol messages."
-      <> m
+
     )
 
-parseTraceBlockFetchProtocol :: MParser Bool
-parseTraceBlockFetchProtocol m =
+parseTraceBlockFetchProtocol :: Parser Bool
+parseTraceBlockFetchProtocol =
     switch (
          long "trace-block-fetch-protocol"
       <> help "Trace BlockFetch protocol messages."
-      <> m
+
     )
 
-parseTraceTxSubmissionProtocol :: MParser Bool
-parseTraceTxSubmissionProtocol m =
+parseTraceTxSubmissionProtocol :: Parser Bool
+parseTraceTxSubmissionProtocol =
     switch (
          long "trace-tx-submission-protocol"
       <> help "Trace TxSubmission protocol messages."
-      <> m
+
     )
 
-parseTraceLocalChainSyncProtocol :: MParser Bool
-parseTraceLocalChainSyncProtocol m =
+parseTraceLocalChainSyncProtocol :: Parser Bool
+parseTraceLocalChainSyncProtocol =
     switch (
          long "trace-local-chain-sync-protocol"
       <> help "Trace local ChainSync protocol messages."
-      <> m
+
     )
 
-parseTraceLocalTxSubmissionProtocol :: MParser Bool
-parseTraceLocalTxSubmissionProtocol m =
+parseTraceLocalTxSubmissionProtocol :: Parser Bool
+parseTraceLocalTxSubmissionProtocol =
     switch (
          long "trace-local-tx-submission-protocol"
       <> help "Trace local TxSubmission protocol messages."
-      <> m
+
     )
 
 
-parseProtocolTraceOptions :: MParser ProtocolTraceOptions
-parseProtocolTraceOptions m = ProtocolTracers
-  <$> (Const <$> parseTraceChainSyncProtocol m)
-  <*> (Const <$> parseTraceBlockFetchProtocol m)
-  <*> (Const <$> parseTraceTxSubmissionProtocol m)
-  <*> (Const <$> parseTraceLocalChainSyncProtocol m)
-  <*> (Const <$> parseTraceLocalTxSubmissionProtocol m)
+parseProtocolTraceOptions :: Parser ProtocolTraceOptions
+parseProtocolTraceOptions = ProtocolTracers
+  <$> (Const <$> parseTraceChainSyncProtocol)
+  <*> (Const <$> parseTraceBlockFetchProtocol)
+  <*> (Const <$> parseTraceTxSubmissionProtocol)
+  <*> (Const <$> parseTraceLocalChainSyncProtocol)
+  <*> (Const <$> parseTraceLocalTxSubmissionProtocol)
 
-parseTraceIpSubscription :: MParser Bool
-parseTraceIpSubscription m =
+parseTraceIpSubscription :: Parser Bool
+parseTraceIpSubscription =
     switch (
          long "trace-ip-subscription"
       <> help "Trace IP Subscription messages."
-      <> m
+
     )
 
-parseTraceDnsSubscription :: MParser Bool
-parseTraceDnsSubscription m =
+parseTraceDnsSubscription :: Parser Bool
+parseTraceDnsSubscription =
     switch (
          long "trace-dns-subscription"
       <> help "Trace DNS Subscription messages."
-      <> m
+
     )
 
-parseTraceDnsResolver :: MParser Bool
-parseTraceDnsResolver m =
+parseTraceDnsResolver :: Parser Bool
+parseTraceDnsResolver =
     switch (
          long "trace-dns-resolver"
       <> help "Trace DNS Resolver messages."
-      <> m
+
     )
 
-parseTraceErrorPolicy :: MParser Bool
-parseTraceErrorPolicy m =
+parseTraceErrorPolicy :: Parser Bool
+parseTraceErrorPolicy =
     switch (
          long "trace-error-policy"
       <> help "Trace error policy resolution."
-      <> m
     )
 
-parseTraceMux :: MParser Bool
-parseTraceMux m =
+parseTraceMux :: Parser Bool
+parseTraceMux =
     switch (
          long "trace-mux"
       <> help "Trace Mux Events"
-      <> m
+
     )
