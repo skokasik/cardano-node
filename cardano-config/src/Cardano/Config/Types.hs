@@ -44,7 +44,6 @@ module Cardano.Config.Types
     , Wallet (..)
     , Certificate (..)
     , TraceOptions (..)
-    , ConsensusTraceOptions
     , ProtocolTraceOptions
     , parseNodeConfiguration
     ) where
@@ -553,7 +552,21 @@ data TraceOptions = TraceOptions
   , traceChainDB         :: !Bool
     -- ^ By default we use 'readableChainDB' tracer, if on this it will use
     -- more verbose tracer
-  , traceConsensus       :: ConsensusTraceOptions
+
+    -- Consensus Tracers --
+  , traceChainSyncClient :: Bool
+  , traceChainSyncHeaderServer :: Bool
+  , traceChainSyncBlockServer :: Bool
+  , traceBlockFetchDecisions :: Bool
+  , traceBlockFetchClient :: Bool
+  , traceBlockFetchServer :: Bool
+  , traceTxInbound :: Bool
+  , traceTxOutbound :: Bool
+  , traceLocalTxSubmissionServer :: Bool
+  , traceMempool :: Bool
+  , traceForge :: Bool
+    -----------------------
+
   , traceProtocols       :: ProtocolTraceOptions
   , traceIpSubscription  :: !Bool
   , traceDnsSubscription :: !Bool
