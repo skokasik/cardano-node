@@ -37,10 +37,8 @@ import           Options.Applicative
 import           Cardano.BM.Data.Tracer (TracingVerbosity (..))
 import           Cardano.Config.Logging (LoggingCLIArguments(..))
 import           Ouroboros.Consensus.NodeId (NodeId(..), CoreNodeId(..))
-import           Ouroboros.Consensus.NodeNetwork (ProtocolTracers'(..))
 
 import           Cardano.Config.CommonCLI
-import           Cardano.Config.Orphanage
 import           Cardano.Config.Protocol
 import           Cardano.Config.Topology
 import           Cardano.Config.Types (ConfigYamlFilePath(..), DbFile(..),
@@ -327,7 +325,7 @@ parseTraceOptions :: Parser TraceOptions
 parseTraceOptions = TraceOptions
   <$> parseTracingVerbosity
   <*> parseTraceChainDB
-  -- Consensus Trace Options
+  -- Consensus Trace Options --
   <*> parseTraceChainSyncClient
   <*> parseTraceChainSyncHeaderServer
   <*> parseTraceChainSyncBlockServer
@@ -339,8 +337,13 @@ parseTraceOptions = TraceOptions
   <*> parseTraceLocalTxSubmissionServer
   <*> parseTraceMempool
   <*> parseTraceForge
-  --------------------------
-  <*> parseProtocolTraceOptions
+  -- Protocol Tracing Options --
+  <*> parseTraceChainSyncProtocol
+  <*> parseTraceBlockFetchProtocol
+  <*> parseTraceTxSubmissionProtocol
+  <*> parseTraceLocalChainSyncProtocol
+  <*> parseTraceLocalTxSubmissionProtocol
+  ------------------------------
   <*> parseTraceIpSubscription
   <*> parseTraceDnsSubscription
   <*> parseTraceDnsResolver
@@ -501,14 +504,6 @@ parseTraceLocalTxSubmissionProtocol =
 
     )
 
-
-parseProtocolTraceOptions :: Parser ProtocolTraceOptions
-parseProtocolTraceOptions = ProtocolTracers
-  <$> (Const <$> parseTraceChainSyncProtocol)
-  <*> (Const <$> parseTraceBlockFetchProtocol)
-  <*> (Const <$> parseTraceTxSubmissionProtocol)
-  <*> (Const <$> parseTraceLocalChainSyncProtocol)
-  <*> (Const <$> parseTraceLocalTxSubmissionProtocol)
 
 parseTraceIpSubscription :: Parser Bool
 parseTraceIpSubscription =

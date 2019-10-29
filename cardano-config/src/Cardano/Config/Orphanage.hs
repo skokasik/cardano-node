@@ -6,9 +6,7 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cardano.Config.Orphanage
-  ( ProtocolTraceOptions
-  ) where
+module Cardano.Config.Orphanage where
 
 import           Cardano.Prelude
 import qualified Prelude
@@ -20,18 +18,11 @@ import qualified Data.Text as T
 
 import           Cardano.BM.Data.Tracer (TracingVerbosity(..))
 import qualified Ouroboros.Consensus.BlockchainTime as Consensus
-import           Ouroboros.Consensus.NodeNetwork (ProtocolTracers'(..))
-
 
 deriving instance Eq Consensus.SlotLength
 deriving instance Num Consensus.SlotLength
 
 deriving instance Show TracingVerbosity
-
-type ProtocolTraceOptions  = ProtocolTracers'   () () ()    (Const Bool)
-deriving instance Eq ProtocolTraceOptions
-deriving instance Show ProtocolTraceOptions
-
 
 instance FromJSON PortNumber where
   parseJSON (Number portNum) = case readMaybe . show $ coefficient portNum of

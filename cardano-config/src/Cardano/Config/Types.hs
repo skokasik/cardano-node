@@ -44,7 +44,6 @@ module Cardano.Config.Types
     , Wallet (..)
     , Certificate (..)
     , TraceOptions (..)
-    , ProtocolTraceOptions
     , parseNodeConfiguration
     ) where
 
@@ -62,7 +61,7 @@ import           Ouroboros.Consensus.BlockchainTime (slotLengthFromMillisec)
 import           Ouroboros.Consensus.NodeId (NodeId(..))
 
 import           Cardano.Config.Topology
-import           Cardano.Config.Orphanage
+import           Cardano.Config.Orphanage ()
 --------------------------------------------------------------------------------
 -- Cardano Environment
 --------------------------------------------------------------------------------
@@ -565,9 +564,14 @@ data TraceOptions = TraceOptions
   , traceLocalTxSubmissionServer :: Bool
   , traceMempool :: Bool
   , traceForge :: Bool
-    -----------------------
 
-  , traceProtocols       :: ProtocolTraceOptions
+    -- Protocol Tracers --
+  , traceChainSyncProtocol :: Bool
+  , traceBlockFetchProtocol :: Bool
+  , traceTxSubmissionProtocol :: Bool
+  , traceLocalChainSyncProtocol :: Bool
+  , traceLocalTxSubmissionProtocol :: Bool
+    ----------------------
   , traceIpSubscription  :: !Bool
   , traceDnsSubscription :: !Bool
   , traceDnsResolver     :: !Bool
