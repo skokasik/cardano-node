@@ -66,7 +66,7 @@ import qualified Cardano.Chain.Genesis as CC.Genesis
 import qualified Cardano.Chain.MempoolPayload as CC.Mempool
 import qualified Cardano.Chain.UTxO as CC.UTxO
 import           Cardano.Config.Logging (LoggingLayer (..), Trace)
-import           Cardano.Config.Types (NodeCLI(..))
+import           Cardano.Config.Types (SocketFile)
 import qualified Cardano.Crypto as Crypto
 import           Cardano.Config.Topology (NodeAddress (..),
                                           NodeHostAddress(..),
@@ -87,7 +87,7 @@ import           Cardano.CLI.Tx.BenchmarkingTxSubClient
 import           Control.Tracer (Tracer, contramap, traceWith)
 
 import           Ouroboros.Consensus.Node.Run (RunNode)
-import Ouroboros.Consensus.Block(BlockProtocol)
+import           Ouroboros.Consensus.Block(BlockProtocol)
 import           Ouroboros.Consensus.Ledger.Byron.Config (pbftProtocolMagic)
 import           Ouroboros.Consensus.Node.ProtocolInfo (ProtocolInfo (..),
                                                         protocolInfo)
@@ -158,7 +158,7 @@ data TxGenError = CurrentlyCannotSendTxToRelayNode FilePath
 -----------------------------------------------------------------------------------------
 genesisBenchmarkRunner
   :: LoggingLayer
-  -> NodeCLI
+  -> SocketFile
   -> Consensus.Protocol ByronBlock
   -> TopologyInfo
   -> [TargetNodeId]
@@ -171,7 +171,7 @@ genesisBenchmarkRunner
   -> [FilePath]
   -> ExceptT TxGenError IO ()
 genesisBenchmarkRunner loggingLayer
-                       nCli
+                       socketFp
                        protocol@(Consensus.ProtocolRealPBFT genesisConfig _ _ _ _)
                        topologyInfo
                        targetNodeIds
@@ -233,7 +233,7 @@ genesisBenchmarkRunner loggingLayer
   -- 'sourceAddress'), this will be our very first transaction.
   liftIO $ prepareInitialFunds
              lowLevelSubmitTracer
-             nCli
+             socketFp
              genesisConfig
              pInfoConfig
              topologyInfo
@@ -251,7 +251,7 @@ genesisBenchmarkRunner loggingLayer
                  connectTracer
                  submitTracer
                  lowLevelSubmitTracer
-                 nCli
+                 socketFp
                  pInfoConfig
                  sourceKey
                  recipientAddress
@@ -427,7 +427,7 @@ extractGenesisFunds genesisConfig signingKeys =
 -- (latter corresponds to 'targetAddress' here) and "remember" it in 'availableFunds'.
 prepareInitialFunds
   :: Tracer IO String
-  -> NodeCLI
+  -> SocketFile
   -> CC.Genesis.Config
   -> NodeConfig ByronConsensusProtocol
   -> TopologyInfo
@@ -437,7 +437,7 @@ prepareInitialFunds
   -> FeePerTx
   -> IO ()
 prepareInitialFunds llTracer
-                    nCli
+                    socketFp
                     genesisConfig
                     pInfoConfig
                     topologyInfo
@@ -459,7 +459,7 @@ prepareInitialFunds llTracer
                                               genesisAddress
                                               (NE.fromList [outForBig])
 
-  submitTx nCli pInfoConfig (node topologyInfo) genesisTx llTracer
+  submitTx socketFp pInfoConfig (node topologyInfo) genesisTx llTracer
   -- Done, the first transaction 'initGenTx' is submitted, now 'sourceAddress' has a lot of money.
 
   let txIn  = CC.UTxO.TxInUtxo (getTxIdFromGenTx genesisTx) 0
@@ -682,7 +682,7 @@ runBenchmark
   -> Tracer IO SendRecvConnect
   -> Tracer IO (SendRecvTxSubmission ByronBlock)
   -> Tracer IO String
-  -> NodeCLI
+  -> SocketFile
   -> NodeConfig ByronConsensusProtocol
   -> Crypto.SigningKey
   -> CC.Common.Address
@@ -699,7 +699,7 @@ runBenchmark benchTracer
              connectTracer
              submitTracer
              lowLevelSubmitTracer
-             nCli
+             socketFp
              pInfoConfig
              sourceKey
              recipientAddress
@@ -715,7 +715,7 @@ runBenchmark benchTracer
     $ "******* Tx generator, phase 1: make enough available UTxO entries *******"
   createMoreFundCoins
     lowLevelSubmitTracer
-    nCli
+    socketFp
     pInfoConfig
     sourceKey
     txFee
@@ -803,7 +803,7 @@ runBenchmark benchTracer
 --   Technically all splitting transactions will send money back to 'sourceAddress'.
 createMoreFundCoins
   :: Tracer IO String
-  -> NodeCLI
+  -> SocketFile
   -> NodeConfig ByronConsensusProtocol
   -> Crypto.SigningKey
   -> FeePerTx
@@ -812,7 +812,7 @@ createMoreFundCoins
   -> NumberOfInputsPerTx
   -> ExceptT TxGenError IO ()
 createMoreFundCoins llTracer
-                    nCli
+                    socketFp
                     pInfoConfig
                     sourceKey
                     (FeePerTx txFee)
@@ -854,7 +854,7 @@ createMoreFundCoins llTracer
                                              txOut
                                              []
   liftIO $ forM_ splittingTxs $ \(tx, txDetailsList) -> do
-    submitTx nCli pInfoConfig (node topologyInfo) tx llTracer
+    submitTx socketFp pInfoConfig (node topologyInfo) tx llTracer
     -- Update available fundValueStatus to reuse the numSplittingTxOuts TxOuts.
     forM_ txDetailsList addToAvailableFunds
  where

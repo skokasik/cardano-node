@@ -30,8 +30,7 @@ import           Cardano.Config.Partial (PartialCardanoConfiguration (..),
                                          mkCardanoConfiguration)
 import           Cardano.Config.Presets (mainnetConfiguration)
 import           Cardano.Config.Protocol (Protocol)
-import           Cardano.Config.Types (CardanoEnvironment (..), GenesisFile(..),
-                                       RequireNetworkMagic)
+import           Cardano.Config.Types (CardanoEnvironment (..), GenesisFile(..))
 import           Cardano.Crypto ( AProtocolMagic(..)
                                 , ProtocolMagic
                                 , ProtocolMagicId(..)
@@ -92,7 +91,7 @@ parseClient = do
                   <*> parseSigningKeyLast
                   <*> parseSocketDirLast
                   <*> parsePbftSigThresholdLast
-                  <*> parseRequireNetworkMagicLast
+                  <*> parseRequiresNetworkMagicLast
                   <*> parseSlotLengthLast
                   <*> parseLogConfigFileLast
                   <*> parseLogMetricsLast
@@ -116,7 +115,7 @@ parseClient = do
     -- ^ Socket dir
     -> Last Double
     -- ^ PBFT Signature Threshold
-    -> Last RequireNetworkMagic
+    -> Last RequiresNetworkMagic
     -> Last Consensus.SlotLength
     -> Last FilePath
     -- ^ Log Configuration Path
@@ -304,7 +303,7 @@ parseTxRelatedValues =
         "Submit a raw, signed transaction, in its on-wire representation."
         $ SubmitTx
             <$> parseTxFile "tx"
-            <*> nodeCliParser
+            <*> parseTopologyInfo "Target node that will receive the transaction"
     , command'
         "issue-genesis-utxo-expenditure"
         "Write a file with a signed transaction, spending genesis UTxO."
@@ -317,7 +316,6 @@ parseTxRelatedValues =
                   "rich-addr-from"
                   "Tx source: genesis UTxO richman address (non-HD)."
             <*> (NE.fromList <$> some parseTxOut)
-            <*> nodeCliParser
 
     , command'
         "issue-utxo-expenditure"
@@ -329,7 +327,6 @@ parseTxRelatedValues =
                   "Key that has access to all mentioned genesis UTxO inputs."
             <*> (NE.fromList <$> some parseTxIn)
             <*> (NE.fromList <$> some parseTxOut)
-            <*> nodeCliParser
     , command'
         "generate-txs"
         "Launch transactions generator."
@@ -360,7 +357,7 @@ parseTxRelatedValues =
             <*> parseSigningKeysFiles
                   "sig-key"
                   "Path to signing key file, for genesis UTxO using by generator."
-            <*> nodeCliParser
+            <*> parseNodeId "Node Id of target node"
       ]
 
 
