@@ -67,7 +67,7 @@ import qualified Ouroboros.Storage.ChainDB as ChainDB
 import           Cardano.Common.LocalSocket
 import           Cardano.Config.Protocol (SomeProtocol(..), fromProtocol)
 import           Cardano.Config.Topology
-import           Cardano.Config.Types (DbFile(..), NodeCLI(..),
+import           Cardano.Config.Types (DbFile(..), NodeMockCLI(..),
                                        SocketFile(..), TopologyFile(..))
 import           Cardano.Tracing.Tracers
 #ifdef UNIX
@@ -92,7 +92,7 @@ instance NoUnexpectedThunks Peer where
 runNode
   :: LoggingLayer
   -> NodeConfiguration
-  -> NodeCLI
+  -> NodeMockCLI
   -> IO ()
 runNode loggingLayer nc nCli = do
     hn <- hostname
@@ -154,7 +154,7 @@ handleSimpleNode :: forall blk. RunNode blk
                  => Consensus.Protocol blk
                  -> Tracer IO (LogObject Text)
                  -> Tracers Peer blk
-                 -> NodeCLI
+                 -> NodeMockCLI
                  -> NodeConfiguration
                  -> IO ()
 handleSimpleNode p trace nodeTracers nCli nc = do

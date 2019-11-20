@@ -5,8 +5,8 @@ set -e
 RUNNER=${RUNNER:-cabal new-run --}
 TOPOLOGY=${TOPOLOGY:-"configuration/topology-proxy-follower.json"}
 
-ARGS=(
-        --database-path           "./db/"
+ARGS=(  real-protocol
+        --database-path           "./db"
         --genesis-file            "configuration/mainnet-genesis.json"
         --topology                "${TOPOLOGY}"
         --socket-dir              "./socket/"

@@ -12,8 +12,10 @@ module Cardano.Config.Types
     , DelegationCertFile (..)
     , GenesisFile (..)
     , MiscellaneousFilepaths (..)
-    , NodeCLI (..)
     , NodeConfiguration (..)
+    , NodeMockCLI (..)
+    , NodeRealCLI (..)
+    , NodeProtocolMode (..)
     , SigningKeyFile (..)
     , SocketFile (..)
     , TopologyFile( ..)
@@ -122,12 +124,24 @@ data CardanoConfiguration = CardanoConfiguration
     , ccWallet              :: !Wallet
     } deriving (Eq, Show)
 
-data NodeCLI = NodeCLI
+data NodeRealCLI = NodeRealCLI
+    { realMscFp :: !MiscellaneousFilepaths
+    , realNodeAddr :: !NodeAddress
+    , realConfigFp :: !ConfigYamlFilePath
+    , realTraceOpts :: !TraceOptions
+    }
+
+data NodeMockCLI = NodeMockCLI
     { mscFp :: !MiscellaneousFilepaths
     , nodeAddr :: !NodeAddress
     , configFp :: !ConfigYamlFilePath
     , traceOpts :: !TraceOptions
     } deriving Show
+
+-- | Mock protocols requires different parameters to real protocols.
+-- Therefore we distinguish this at the top level on the command line.
+data NodeProtocolMode = MockProtocolMode NodeMockCLI
+                      | RealProtocolMode NodeRealCLI
 
 -- | Filepath of the configuration yaml file. This file determines
 -- all the configuration settings required for the cardano node

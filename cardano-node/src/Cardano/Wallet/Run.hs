@@ -19,7 +19,7 @@ import           Ouroboros.Consensus.NodeId (CoreNodeId (..))
 
 import           Cardano.Config.CommonCLI
 import           Cardano.Config.Types (ConfigYamlFilePath(..), MiscellaneousFilepaths(..),
-                                       NodeCLI(..), NodeConfiguration(..), SocketFile(..),
+                                       NodeMockCLI(..), NodeConfiguration(..), SocketFile(..),
                                        parseNodeConfiguration)
 import           Cardano.Wallet.Client
 
@@ -47,5 +47,5 @@ data WalletCLI = WalletCLI {
     cliCoreNodeId   :: CoreNodeId,
     cliCommon       :: CommonCLI,
     cliCommonAdv    :: CommonCLIAdvanced,
-    cliNodeCLI      :: NodeCLI
+    cliNodeCLI      :: NodeMockCLI
   }

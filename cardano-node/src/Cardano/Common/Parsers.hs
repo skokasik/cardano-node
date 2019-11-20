@@ -6,7 +6,8 @@
 module Cardano.Common.Parsers
   ( cliTracingParser
   , loggingParser
-  , nodeCliParser
+  , nodeMockParser
+  , nodeProtocolModeParser
   , parseConfigFile
   , parseCoreNodeId
   , parseDbPath
@@ -46,17 +47,44 @@ import           Cardano.Config.Topology
 import           Cardano.Config.Types (ConfigYamlFilePath(..), DbFile(..),
                                        DelegationCertFile(..), GenesisFile (..),
                                        MiscellaneousFilepaths(..),
-                                       NodeCLI(..), SigningKeyFile(..), SocketFile(..),
-                                       TraceOptions(..), TopologyFile(..))
+                                       NodeMockCLI(..), NodeProtocolMode (..),
+                                       NodeRealCLI (..), SigningKeyFile(..),
+                                       SocketFile(..), TraceOptions(..), TopologyFile(..))
 
 -- Common command line parsers
 
 cliTracingParser :: Parser (Last TraceOptions)
 cliTracingParser = Last . Just <$> parseTraceOptions Opt.hidden
 
--- | The product parser for all the CLI arguments.
-nodeCliParser :: Parser NodeCLI
-nodeCliParser = do
+
+nodeProtocolModeParser  :: Parser NodeProtocolMode
+nodeProtocolModeParser = nodeMockProtocolModeParser <|> nodeRealProtocolModeParser
+
+nodeMockProtocolModeParser :: Parser NodeProtocolMode
+nodeMockProtocolModeParser = subparser
+                           (  commandGroup "Execute node with a mock protocol."
+                           <> metavar "mock-protocol"
+                           <> command "mock-protocol"
+                                (MockProtocolMode
+                                  <$> info
+                                        (nodeMockParser <**> helper)
+                                        (progDesc "Execute node with a mock protocol."))
+                           )
+nodeRealProtocolModeParser :: Parser NodeProtocolMode
+nodeRealProtocolModeParser = subparser
+                           (  commandGroup "Execute node with a real protocol."
+                           <> metavar "real-protocol"
+                           <> command "real-protocol"
+                                (RealProtocolMode
+                                  <$> info
+                                        (nodeRealParser <**> helper)
+                                        (progDesc "Execute node with a real protocol." ))
+                           )
+
+
+-- | The mock protocol parser.
+nodeMockParser :: Parser NodeMockCLI
+nodeMockParser = do
   -- Filepaths
   topFp <- parseTopologyFile
   dbFp <- parseDbPath
@@ -74,7 +102,7 @@ nodeCliParser = do
   traceOptions <- cliTracingParser
 
 
-  pure $ NodeCLI
+  pure $ NodeMockCLI
            (MiscellaneousFilepaths
               (TopologyFile topFp)
               (DbFile dbFp)
@@ -86,6 +114,38 @@ nodeCliParser = do
            nAddress
            (ConfigYamlFilePath nodeConfigFp)
            (fromMaybe (panic "Cardano.Common.Parsers: Trace Options were not specified") $ getLast traceOptions)
+
+-- | The real protocol parser.
+nodeRealParser :: Parser NodeRealCLI
+nodeRealParser = do
+  -- Filepaths
+  topFp <- parseTopologyFile
+  dbFp <- parseDbPath
+  genFp <- parseGenesisPath
+  delCertFp <- optional parseDelegationCert
+  sKeyFp <- optional parseSigningKey
+  socketFp <- parseSocketPath
+
+  -- NodeConfiguration filepath
+  nodeConfigFp <- parseConfigFile
+
+  -- TraceOptions
+  traceOptions <- cliTracingParser
+
+
+  pure $ NodeRealCLI
+           (MiscellaneousFilepaths
+              (TopologyFile topFp)
+              (DbFile dbFp)
+              (GenesisFile genFp)
+              (DelegationCertFile <$> delCertFp)
+              (SigningKeyFile <$> sKeyFp)
+              (SocketFile socketFp)
+            )
+           (ConfigYamlFilePath nodeConfigFp)
+           (fromMaybe (panic "Cardano.Common.Parsers: Trace Options were not specified") $ getLast traceOptions)
+
+
 
 parseConfigFile :: Parser FilePath
 parseConfigFile =

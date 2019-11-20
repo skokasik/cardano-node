@@ -10,7 +10,7 @@ import           Cardano.Shell.Lib (runCardanoApplicationWithFeatures)
 import           Cardano.Shell.Types (CardanoApplication (..))
 
 import           Cardano.Config.Types
-import           Cardano.Common.Parsers (nodeCliParser)
+import           Cardano.Common.Parsers (nodeMockParser)
 import           Cardano.Tracing.TraceAcceptor (runTraceAcceptor)
 
 main :: IO ()
@@ -30,9 +30,9 @@ main = do
     pref :: Opt.ParserPrefs
     pref = Opt.prefs Opt.showHelpOnEmpty
 
-    opts :: Opt.ParserInfo NodeCLI
+    opts :: Opt.ParserInfo NodeMockCLI
     opts =
-      Opt.info (nodeCliParser <**> Opt.helper)
+      Opt.info (nodeMockParser <**> Opt.helper)
         ( Opt.fullDesc
           <> Opt.header
           "trace-acceptor - utility to support a variety of key\

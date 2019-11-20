@@ -19,7 +19,7 @@ import           Cardano.Config.Logging (LoggingCLIArguments (..),
                                                 LoggingLayer (..),
                                                 createLoggingFeature
                                                 )
-import           Cardano.Common.Parsers (loggingParser, parseCoreNodeId, nodeCliParser)
+import           Cardano.Common.Parsers (loggingParser, parseCoreNodeId, nodeMockParser)
 import           Cardano.Wallet.Run
 
 -- | The product type of all command line arguments
@@ -37,7 +37,7 @@ parseWalletCLI = WalletCLI
     <$> parseCoreNodeId
     <*> parseCommonCLI
     <*> parseCommonCLIAdvanced
-    <*> nodeCliParser
+    <*> nodeMockParser
 
 -- | Top level parser with info.
 --

@@ -55,9 +55,9 @@ import qualified Cardano.BM.Trace as Trace
 import           Cardano.Shell.Lib (GeneralException (..))
 import           Cardano.Shell.Types (CardanoFeature (..))
 
-import           Cardano.Config.Types (CardanoConfiguration(..), ConfigYamlFilePath(..),
-                                       CardanoEnvironment, NodeCLI(..), NodeConfiguration(..),
-                                       parseNodeConfiguration)
+import           Cardano.Config.Types (CardanoConfiguration (..), ConfigYamlFilePath (..),
+                                       CardanoEnvironment, NodeMockCLI (..), NodeProtocolMode (..),
+                                       NodeConfiguration (..), NodeRealCLI (..),parseNodeConfiguration)
 
 
 --------------------------------------------------------------------------------
@@ -158,8 +158,12 @@ createLoggingFeatureCLI _ cc = do
     pure (loggingLayer, cardanoFeature)
 
 createLoggingFeature
-  :: CardanoEnvironment -> NodeCLI -> IO (LoggingLayer, CardanoFeature)
-createLoggingFeature _ nCli = do
+  :: CardanoEnvironment -> NodeProtocolMode -> IO (LoggingLayer, CardanoFeature)
+createLoggingFeature _ nodeProtocolMode = do
+
+    configYamlFp <- case nodeProtocolMode of
+                      RealProtocolMode (NodeRealCLI _ _ rConfigFp _) -> pure rConfigFp
+                      MockProtocolMode (NodeMockCLI _ _ mConfigFp _) -> pure mConfigFp
     -- we parse any additional configuration if there is any
     -- We don't know where the user wants to fetch the additional
     -- configuration from, it could be from
@@ -167,8 +171,8 @@ createLoggingFeature _ nCli = do
     --
     -- Currently we parse outside the features since we want to have a complete
     -- parser for __every feature__.
-    nc <- parseNodeConfiguration . unConfigPath $ configFp nCli
-    let logConfigFp = if ncLoggingSwitch nc then Just . unConfigPath $ configFp nCli else Nothing
+    nc <- parseNodeConfiguration $ unConfigPath configYamlFp
+    let logConfigFp = if ncLoggingSwitch nc then Just $ unConfigPath configYamlFp else Nothing
 
     (disabled', loggingConfiguration) <- loggingCLIConfiguration
                                            logConfigFp
