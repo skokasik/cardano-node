@@ -1,8 +1,6 @@
 # Changelog for cardano-node
 
-## Unreleased changes
-
-## cardano-node 1.0.0
+## cardano-node 1.0.0 November 2019
 
 - Complete rewrite compared to previous cardano-sl series.
 
