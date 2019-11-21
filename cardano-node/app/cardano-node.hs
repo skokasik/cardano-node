@@ -19,9 +19,9 @@ import           Cardano.Common.Help
 import           Cardano.Common.Parsers
 import           Cardano.Config.CommonCLI (parseCommonCLIAdvanced)
 import           Cardano.Config.Logging (createLoggingFeature)
-import           Cardano.Config.Types (CardanoEnvironment (..), ConfigYamlFilePath(..),
+import           Cardano.Config.Types (CardanoEnvironment (..),
                                        NodeMockCLI(..), NodeProtocolMode (..),
-                                       NodeRealCLI(..), parseNodeConfiguration)
+                                       NodeRealCLI(..))
 import           Cardano.Node.Features.Node
 
 main :: IO ()
@@ -74,34 +74,28 @@ initializeAllFeatures
   :: NodeProtocolMode
   -> CardanoEnvironment
   -> IO ([CardanoFeature], NodeLayer)
-initializeAllFeatures (RealProtocolMode (rnCli@(NodeRealCLI _  ncFp _))) cardanoEnvironment = do
-  (loggingLayer, loggingFeature) <- createLoggingFeature cardanoEnvironment rnCli
-
-  nodeConfig <- parseNodeConfiguration $ unConfigPath ncFp
+initializeAllFeatures rpm@(RealProtocolMode (NodeRealCLI _ _ _ _)) cardanoEnvironment = do
+  (loggingLayer, loggingFeature) <- createLoggingFeature cardanoEnvironment rpm
   (nodeLayer   , nodeFeature)    <-
     createNodeFeature
       loggingLayer
       cardanoEnvironment
-      nodeConfig
-      rnCli
+      rpm
 
   pure ([ loggingFeature
         , nodeFeature
         ] :: [CardanoFeature]
        , nodeLayer)
 
-initializeAllFeatures (MockProtocolMode (mnCli@(NodeMockCLI _ _ ncFp _)))
+initializeAllFeatures mpm@(MockProtocolMode (NodeMockCLI _ _ _ _))
                        cardanoEnvironment = do
 
-    (loggingLayer, loggingFeature) <- createLoggingFeature cardanoEnvironment mnCli
-
-    nodeConfig <- parseNodeConfiguration $ unConfigPath ncFp
+    (loggingLayer, loggingFeature) <- createLoggingFeature cardanoEnvironment mpm
     (nodeLayer   , nodeFeature)    <-
       createNodeFeature
         loggingLayer
         cardanoEnvironment
-        nodeConfig
-        mnCli
+        mpm
 
     pure ([ loggingFeature
           , nodeFeature

@@ -7,6 +7,7 @@ module Cardano.Common.Parsers
   ( cliTracingParser
   , loggingParser
   , nodeMockParser
+  , nodeMockProtocolModeParser
   , nodeProtocolModeParser
   , parseConfigFile
   , parseCoreNodeId
@@ -126,6 +127,9 @@ nodeRealParser = do
   sKeyFp <- optional parseSigningKey
   socketFp <- parseSocketPath
 
+  -- Node Address
+  nAddress <- parseNodeAddress
+
   -- NodeConfiguration filepath
   nodeConfigFp <- parseConfigFile
 
@@ -142,6 +146,7 @@ nodeRealParser = do
               (SigningKeyFile <$> sKeyFp)
               (SocketFile socketFp)
             )
+           nAddress
            (ConfigYamlFilePath nodeConfigFp)
            (fromMaybe (panic "Cardano.Common.Parsers: Trace Options were not specified") $ getLast traceOptions)
 
