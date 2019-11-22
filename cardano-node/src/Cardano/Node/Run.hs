@@ -24,8 +24,12 @@ import           Cardano.Prelude hiding (ByteString, atomically, take, trace)
 import           Prelude (error, id, unlines)
 
 import qualified Control.Concurrent.Async as Async
+import           Control.Exception (IOException)
+import qualified Control.Exception as Exception
 import           Control.Tracer
+import           Data.Aeson (eitherDecode)
 import qualified Data.ByteString.Char8 as BSC
+import qualified Data.ByteString.Lazy as LB
 import           Data.Either (partitionEithers)
 import           Data.Functor.Contravariant (contramap)
 import qualified Data.List as List
@@ -172,13 +176,21 @@ handleSimpleNode p trace nodeTracers npm = do
     RealProtocolMode (NodeRealCLI rMscFp rNodeAddr _ _) -> do
       let pInfo@ProtocolInfo{ pInfoConfig = cfg } = protocolInfo p
 
-      hn <- getHostName
+      -- Topology
+      eitherTopology <- readRealNodeTopology . unTopology $ topFile rMscFp
+      topology <- case eitherTopology of
+                    --TODO: Convert handleSimpleNode to return `ExceptT`
+                    Left err -> panic $ "Cardano.Node.Run.readRealNodeTopology: "
+                                      <> err
+                    Right top -> pure top
+
       -- Tracing
       let tracer = contramap pack $ toLogObject trace
       traceWith tracer $ unlines
-        [ "**************************************"
-        , "Hostname: " <> hn
-        , "My producers are " --TODO: Should depend on the jq version of top file
+        [ ""
+        , "**************************************"
+        , "Host node address: " <> (show $ rNodeAddress topology)
+        , "My producers are " <> (show $ rProducers topology)
         , "**************************************"
         ]
 
@@ -196,7 +208,7 @@ handleSimpleNode p trace nodeTracers npm = do
           dnsProducerAddrs :: [RemoteAddress]
           (ipProducerAddrs, dnsProducerAddrs) = partitionEithers
             [ maybe (Right ra) Left $ remoteAddressToNodeAddress ra
-            | ra <- [RemoteAddress "18.185.45.45" 3001 1] ]
+            | ra <- rProducers topology ]
           ipProducers :: [SockAddr]
           ipProducers = nodeAddressToSockAddr <$> ipProducerAddrs
 
@@ -350,3 +362,16 @@ handleSimpleNode p trace nodeTracers npm = do
               Just (CoreId  n) -> n
               Just (RelayId _) -> error "Non-core nodes currently not supported"
               Nothing -> 999
+
+-- | Read the `RealNodeTopology` configuration from the specified file.
+-- While running a real protocol, this gives your node its own address and
+-- other remote peers it will attempt to connect to.
+readRealNodeTopology :: FilePath -> IO (Either Text RealNodeTopology)
+readRealNodeTopology fp = do
+  ebs <- Exception.try $ BSC.readFile fp :: IO (Either IOException BSC.ByteString)
+  case ebs of
+    Left e -> pure $ handler e
+    Right bs -> pure . first toS . eitherDecode $ LB.fromStrict bs
+ where
+   handler :: IOException -> Either Text RealNodeTopology
+   handler e =  Left . pack $ show e

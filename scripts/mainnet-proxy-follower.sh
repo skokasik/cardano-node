@@ -3,13 +3,12 @@
 set -e
 
 RUNNER=${RUNNER:-cabal new-run --}
-TOPOLOGY=${TOPOLOGY:-"configuration/topology-proxy-follower.json"}
 
  ARGS=(  real-protocol
          --database-path           "./db"
          --genesis-file            "configuration/mainnet-genesis.json"
-         --topology                "${TOPOLOGY}"
-         --socket-dir              "./socket/singlenode"
+         --topology                "configuration/topology-proxy-follower.json"
+         --socket-path              "./socket/singlenode"
          --config                  "./configuration/mainnet-proxy-follower.yaml"
          --port                    7776
  )

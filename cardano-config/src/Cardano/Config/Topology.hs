@@ -12,6 +12,7 @@ module Cardano.Config.Topology
   , NodeAddress(..)
   , NodeHostAddress(..)
   , NodeSetup(..)
+  , RealNodeTopology(..)
   , RemoteAddress(..)
   , createNodeAddress
   , nodeAddressInfo
@@ -133,6 +134,17 @@ data NodeSetup = NodeSetup
   , nodeAddress :: !NodeAddress
   , producers :: ![RemoteAddress]
   } deriving Show
+
+data RealNodeTopology = RealNodeTopology
+  { rNodeAddress :: !NodeAddress
+  , rProducers :: ![RemoteAddress]
+  }
+
+instance FromJSON RealNodeTopology where
+  parseJSON = withObject "RealNodeTopology" $ \v ->
+    RealNodeTopology
+      <$> v .: "rNodeAddress"
+      <*> (v .: "rProducers")
 
 instance FromJSON NodeId where
   parseJSON v = CoreId <$> parseJSON v
