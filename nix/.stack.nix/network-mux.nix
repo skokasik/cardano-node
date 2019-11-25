@@ -65,8 +65,8 @@
     } // {
     src = (pkgs.lib).mkDefault (pkgs.fetchgit {
       url = "https://github.com/input-output-hk/ouroboros-network";
-      rev = "5941c192b64f39d1ab276e0a747a0e47fb52cef8";
-      sha256 = "1yjmyq8r5rgkr54cpnnwncccq6qyfyjfd7glqnr2zc3vh0i2zfah";
+      rev = "cf335a5406e1d78aeedbffa912d2e7543104ffe7";
+      sha256 = "1nhk9797hgchz0hz8gcxql3nwkrh6jizn6zvydk1nh5sn73b0d9v";
       });
     postUnpack = "sourceRoot+=/network-mux; echo source root reset to \$sourceRoot";
     }
