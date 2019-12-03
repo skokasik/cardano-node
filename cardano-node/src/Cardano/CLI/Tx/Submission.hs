@@ -17,6 +17,7 @@ import           Prelude (String)
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Void (Void)
 
+import           Control.Monad.Class.MonadAsync (MonadAsync)
 import           Control.Monad.Class.MonadST (MonadST)
 import           Control.Monad.Class.MonadThrow (MonadThrow)
 import           Control.Monad.Class.MonadTimer (MonadTimer)
@@ -100,6 +101,7 @@ submitTx socketFp protoInfoConfig nId tx tracer = do
 localInitiatorNetworkApplication
   :: forall blk m peer.
      ( RunNode blk
+     , MonadAsync m
      , MonadST m
      , MonadThrow m
      , MonadTimer m
@@ -118,7 +120,7 @@ localInitiatorNetworkApplication tracer protoInfoConfig tx =
         { NodeToClient.networkMagic = Node.nodeNetworkMagic (Proxy @blk) protoInfoConfig })
       (NodeToClient.DictVersion NodeToClient.nodeToClientCodecCBORTerm)
 
-  $ OuroborosInitiatorApplication $ \peer ptcl -> case ptcl of
+  $ OuroborosInitiatorApplication (NodeToClient.ncSimpleInitiatorControl 1) $ \peer ptcl -> case ptcl of
       NodeToClient.LocalTxSubmissionPtcl -> \channel -> do
         traceWith tracer ("Submitting transaction: " {-++ show tx-})
         result <- runPeer

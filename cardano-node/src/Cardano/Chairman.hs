@@ -385,8 +385,7 @@ localInitiatorNetworkApplication coreNodeId chainsVar securityParam maxBlockNo c
       NodeToClientV_1
       (NodeToClientVersionData (nodeNetworkMagic (Proxy @blk) pInfoConfig))
       (DictVersion nodeToClientCodecCBORTerm)
-
-  $ OuroborosInitiatorApplication $ \peer ptcl -> case ptcl of
+  $ OuroborosInitiatorApplication (ncSimpleInitiatorControl 1) $ \peer ptcl -> case ptcl of
       LocalTxSubmissionPtcl -> \channel -> do
         runPeer
           localTxSubmissionTracer

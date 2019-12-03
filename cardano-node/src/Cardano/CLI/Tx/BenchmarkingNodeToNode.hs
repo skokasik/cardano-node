@@ -95,7 +95,7 @@ benchmarkConnectTxSubmit trs nc localAddr remoteAddr myTxSubClient = do
       NtN.NodeToNodeV_1
       (NtN.NodeToNodeVersionData { NtN.networkMagic = nodeNetworkMagic (Proxy @blk) nc})
       (NtN.DictVersion NtN.nodeToNodeCodecCBORTerm)
-      $ OuroborosInitiatorApplication $ \peer ptcl ->
+      $ OuroborosInitiatorApplication (NtN.simpleInitiatorControl 1) $ \peer ptcl ->
           case ptcl of
             NtN.ChainSyncWithHeadersPtcl -> \channel ->
               runPeer nullTracer (pcChainSyncCodec myCodecs) peer channel

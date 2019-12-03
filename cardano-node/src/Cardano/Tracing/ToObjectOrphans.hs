@@ -206,6 +206,12 @@ instance DefineSeverity (WithMuxBearer peer (MuxTrace ptcl)) where
     MuxTraceHandshakeServerError {}  -> Error
     MuxTraceRecvDeltaQObservation {} -> Debug
     MuxTraceRecvDeltaQSample {}      -> Info
+    MuxTraceBrooderResponderBrood {} -> Debug
+    MuxTraceBrooderResponderHatch {} -> Info
+    MuxTraceBrooderResponderDone  {} -> Info
+    MuxTraceBrooderInitiatorBrood {} -> Debug
+    MuxTraceBrooderInitiatorHatch {} -> Info
+    MuxTraceBrooderInitiatorDone {}  -> Info
 
 instance DefinePrivacyAnnotation (WithTip blk (ChainDB.TraceEvent blk))
 instance DefineSeverity (WithTip blk (ChainDB.TraceEvent blk)) where
@@ -224,6 +230,12 @@ instance DefineSeverity (ChainDB.TraceEvent blk) where
       ChainDB.CandidateExceedsRollback {} -> Error
     ChainDB.AddedBlockToVolDB {} -> Debug
     ChainDB.ChainChangedInBg {} -> Info
+    ChainDB.IgnoreBlockOlderThanK {} -> Info
+    ChainDB.IgnoreBlockAlreadyInVolDB {} -> Info
+    ChainDB.IgnoreInvalidBlock {} -> Info
+    ChainDB.BlockInTheFuture {} -> Info
+    ChainDB.ScheduledChainSelection {} -> Debug
+    ChainDB.RunningScheduledChainSelection {} -> Debug
 
   defineSeverity (ChainDB.TraceLedgerReplayEvent ev) = case ev of
     LedgerDB.ReplayFromGenesis {} -> Info
@@ -448,6 +460,7 @@ readableChainDBTracer tracer = Tracer $ \case
       "Chain added block " <> condense pt
     ChainDB.ChainChangedInBg c1 c2     -> tr $ WithTip tip $
       "Chain changed in bg, from " <> condense (AF.headPoint c1) <> " to "  <> condense (AF.headPoint c2)
+    _ -> tr $ WithTip tip "Random chain event"
   WithTip tip (ChainDB.TraceLedgerReplayEvent ev) -> case ev of
     LedgerDB.ReplayFromGenesis _replayTo -> tr $ WithTip tip
       "Replaying ledger from genesis"
@@ -604,6 +617,7 @@ instance (Condense (HeaderHash blk), ProtocolLedgerView blk)
       mkObject [ "kind" .= String "TraceAddBlockEvent.ChainChangedInBg"
                , "prev" .= showTip verb (AF.headPoint c1)
                , "new" .= showTip verb (AF.headPoint c2) ]
+    _ -> mkObject ["random" .= String "FixMe"]
 
   toObject MinimalVerbosity (ChainDB.TraceLedgerReplayEvent _ev) = emptyObject -- no output
   toObject verb (ChainDB.TraceLedgerReplayEvent ev) = case ev of
