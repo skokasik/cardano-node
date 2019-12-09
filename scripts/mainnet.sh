@@ -13,6 +13,7 @@ ARGS=(
         --socket-dir              "./socket/"
         --config                  "./configuration/mainnet.yaml"
         --port                    7776
+        +RTS -K2M
 )
 
 ${RUNNER} exe:cardano-node "${ARGS[@]}"
