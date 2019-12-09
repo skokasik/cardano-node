@@ -83,10 +83,12 @@ runNode
   -> NodeConfiguration
   -> NodeCLI
   -> IO ()
-runNode loggingLayer nc nCli = do
-    hn <- hostname
-    let !trace = setHostname hn $
-                 llAppendName loggingLayer "node" (llBasicTrace loggingLayer)
+runNode _loggingLayer nc nCli = do
+    -- hn <- hostname
+    -- let !trace = setHostname hn $
+    --              llAppendName loggingLayer "node" (llBasicTrace loggingLayer)
+    let trace :: Tracer IO (LogObject Text)
+        trace  = showTracing stdoutTracer
     let tracer = contramap pack $ toLogObject trace
 
     traceWith tracer $ "tracing verbosity = " ++
@@ -111,7 +113,7 @@ runNode loggingLayer nc nCli = do
     case ncViewMode nc of
       SimpleView -> handleSimpleNode p trace tracers nCli nc
       LiveView   -> do
-#ifdef UNIX
+#ifndef UNIX
         let c = llConfiguration loggingLayer
         -- We run 'handleSimpleNode' as usual and run TUI thread as well.
         -- turn off logging to the console, only forward it through a pipe to a central logging process
