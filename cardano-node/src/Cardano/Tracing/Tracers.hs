@@ -116,7 +116,8 @@ mkTracers :: forall peer blk.
            -> Tracers peer blk
 mkTracers traceOptions tracer = Tracers
     { chainDBTracer
-        = annotateSeverity $ filterSeverity (pure . const (tracingSeverity $ traceChainDB traceOptions))
+        = tracerOnOff (traceChainDB traceOptions)
+          $ annotateSeverity $ filterSeverity (pure . const (tracingSeverity True))
           $ teeTraceChainTip (tracingFormatting $ traceChainDB traceOptions) tracingVerbosity
           $ addName "ChainDB" tracer
     , consensusTracers
@@ -124,23 +125,28 @@ mkTracers traceOptions tracer = Tracers
     , protocolTracers
         = mkProtocolsTracers
     , ipSubscriptionTracer
-        = annotateSeverity $ filterSeverity (pure . const (tracingSeverity $ traceIpSubscription traceOptions))
+        = tracerOnOff (traceIpSubscription traceOptions)
+          $ annotateSeverity $ filterSeverity (pure . const (tracingSeverity True))
           $ toLogObject' (tracingFormatting $ traceIpSubscription traceOptions) tracingVerbosity
           $ addName "IpSubscription" tracer
     , dnsSubscriptionTracer
-        = annotateSeverity $ filterSeverity (pure . const (tracingSeverity $ traceDnsSubscription traceOptions))
+        = tracerOnOff (traceDnsSubscription traceOptions)
+          $ annotateSeverity $ filterSeverity (pure . const (tracingSeverity True))
           $ toLogObject' (tracingFormatting $ traceDnsSubscription traceOptions) tracingVerbosity
           $ addName "DnsSubscription" tracer
     , dnsResolverTracer
-        = annotateSeverity $ filterSeverity (pure . const (tracingSeverity $ traceDnsResolver traceOptions))
+        = tracerOnOff (traceDnsResolver traceOptions)
+          $ annotateSeverity $ filterSeverity (pure . const (tracingSeverity $ traceDnsResolver traceOptions))
           $ toLogObject' (tracingFormatting $ traceDnsResolver traceOptions) tracingVerbosity
           $ addName "DnsResolver" tracer
     , errorPolicyTracer
-        = annotateSeverity $ filterSeverity (pure . const (tracingSeverity $ traceErrorPolicy traceOptions))
+        = tracerOnOff (traceErrorPolicy traceOptions)
+          $ annotateSeverity $ filterSeverity (pure . const (tracingSeverity True))
           $ toLogObject' (tracingFormatting $ traceErrorPolicy traceOptions) tracingVerbosity
           $ addName "ErrorPolicy" tracer
     , muxTracer
-        = annotateSeverity $ filterSeverity (pure . const Info)  -- filter out everything below this level
+        =  tracerOnOff (traceMux traceOptions)
+          $ annotateSeverity $ filterSeverity (pure . const Info)  -- filter out everything below this level
           $ toLogObject' (tracingFormatting $ traceMux traceOptions) tracingVerbosity
           $ addName "Mux" tracer
     }
