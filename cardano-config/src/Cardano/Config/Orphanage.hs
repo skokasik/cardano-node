@@ -7,8 +7,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cardano.Config.Orphanage
-  ( ConsensusTraceOptions
-  , ProtocolTraceOptions
+  ( ProtocolTraceOptions
   ) where
 
 import           Cardano.Prelude
@@ -22,7 +21,6 @@ import qualified Data.Text as T
 import           Cardano.BM.Data.Tracer (TracingVerbosity(..))
 import qualified Cardano.Chain.Update as Update
 import qualified Ouroboros.Consensus.BlockchainTime as Consensus
-import qualified Ouroboros.Consensus.Node.Tracers as ConsensusTracers
 import           Ouroboros.Consensus.NodeNetwork (ProtocolTracers'(..))
 
 
@@ -30,10 +28,6 @@ deriving instance Eq Consensus.SlotLength
 deriving instance Num Consensus.SlotLength
 
 deriving instance Show TracingVerbosity
-
-type ConsensusTraceOptions = ConsensusTracers.Tracers' () ()    (Const Bool)
-deriving instance Eq ConsensusTraceOptions
-deriving instance Show ConsensusTraceOptions
 
 type ProtocolTraceOptions  = ProtocolTracers'   () () ()    (Const Bool)
 deriving instance Eq ProtocolTraceOptions

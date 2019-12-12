@@ -10,20 +10,6 @@ import           Cardano.BM.Data.Tracer (TracingVerbosity (..))
 import qualified Ouroboros.Consensus.Node.Tracers as ConsensusTracers
 import           Ouroboros.Consensus.NodeNetwork (ProtocolTracers'(..))
 
-consensusTraceDefault :: ConsensusTraceOptions
-consensusTraceDefault =
-  ConsensusTracers.Tracers
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
-    (Const True)
 
 protocolTraceDefault :: ProtocolTraceOptions
 protocolTraceDefault =
@@ -40,7 +26,17 @@ traceOptionsDefault =
   TraceOptions
     { traceVerbosity = NormalVerbosity
     , traceChainDB = True
-    , traceConsensus = consensusTraceDefault
+    , traceChainSyncClient = True
+    , traceChainSyncHeaderServer = True
+    , traceChainSyncBlockServer = True
+    , traceBlockFetchDecisions = True
+    , traceBlockFetchClient = True
+    , traceBlockFetchServer = True
+    , traceTxInbound = True
+    , traceTxOutbound = True
+    , traceLocalTxSubmissionServer = True
+    , traceMempool = True
+    , traceForge = True
     , traceProtocols = protocolTraceDefault
     , traceIpSubscription = True
     , traceDnsSubscription = True
