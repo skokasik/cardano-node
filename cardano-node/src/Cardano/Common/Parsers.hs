@@ -42,10 +42,8 @@ import qualified Options.Applicative as Opt
 import           Cardano.BM.Data.Tracer (TracingVerbosity (..))
 import           Cardano.Config.Logging (LoggingCLIArguments(..))
 import           Ouroboros.Consensus.NodeId (NodeId(..), CoreNodeId(..))
-import           Ouroboros.Consensus.NodeNetwork (ProtocolTracers'(..))
 
 import           Cardano.Config.CommonCLI
-import           Cardano.Config.Orphanage
 import           Cardano.Config.Partial
                  ( PartialLastKnownBlockVersion(..))
 import           Cardano.Config.Protocol
