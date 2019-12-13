@@ -324,8 +324,19 @@ parseTraceOptions m = TraceOptions
   <*> parseTraceLocalTxSubmissionServer m
   <*> parseTraceMempool m
   <*> parseTraceForge m
-  --------------------------
-  <*> parseProtocolTraceOptions m
+  -----------------------------
+
+  -- Protocol Tracing Options --
+  <*> parseTraceChainSyncProtocol m
+  -- There's two variants of the block fetch tracer and for now
+  -- at least we'll set them both together from the same flags.
+  <*> parseTraceBlockFetchProtocol m
+  <*> parseTraceBlockFetchProtocol m
+  <*> parseTraceTxSubmissionProtocol m
+  <*> parseTraceLocalChainSyncProtocol m
+  <*> parseTraceLocalTxSubmissionProtocol m
+  ------------------------------
+
   <*> parseTraceIpSubscription m
   <*> parseTraceDnsSubscription m
   <*> parseTraceDnsResolver m
@@ -487,18 +498,6 @@ parseTraceLocalTxSubmissionProtocol m =
       <> help "Trace local TxSubmission protocol messages."
       <> m
     )
-
-
-parseProtocolTraceOptions :: MParser ProtocolTraceOptions
-parseProtocolTraceOptions m = ProtocolTracers
-  <$> (Const <$> parseTraceChainSyncProtocol m)
-      -- There's two variants of the block fetch tracer and for now
-      -- at least we'll set them both together from the same flags.
-  <*> (Const <$> parseTraceBlockFetchProtocol m)
-  <*> (Const <$> parseTraceBlockFetchProtocol m)
-  <*> (Const <$> parseTraceTxSubmissionProtocol m)
-  <*> (Const <$> parseTraceLocalChainSyncProtocol m)
-  <*> (Const <$> parseTraceLocalTxSubmissionProtocol m)
 
 parseTraceIpSubscription :: MParser Bool
 parseTraceIpSubscription m =

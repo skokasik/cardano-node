@@ -11,8 +11,7 @@
 {-# OPTIONS_GHC -Wno-all-missed-specialisations #-}
 
 module Cardano.Tracing.Tracers
-  ( ProtocolTraceOptions
-  , Tracers (..)
+  ( Tracers (..)
   , TraceConstraints
   , TraceOptions(..)
   , mkTracers
@@ -26,7 +25,6 @@ import           Prelude (String)
 import           Codec.CBOR.Read (DeserialiseFailure)
 import           Control.Monad.Class.MonadSTM
 import           Control.Tracer
-import           Data.Functor.Const (Const (..))
 import           Data.Functor.Contravariant (contramap)
 import           Data.Text (Text, pack)
 import qualified Network.Socket as Socket (SockAddr)
@@ -61,7 +59,6 @@ import           Ouroboros.Network.Subscription
 
 import qualified Ouroboros.Storage.ChainDB as ChainDB
 
-import           Cardano.Config.Orphanage
 import           Cardano.Config.Protocol (TraceConstraints)
 import           Cardano.Config.Types
 import           Cardano.Tracing.ToObjectOrphans
@@ -123,7 +120,7 @@ mkTracers traceOptions tracer = Tracers
     , consensusTracers
         = mkConsensusTracers traceOptions
     , protocolTracers
-        = mkProtocolsTracers
+        = mkProtocolsTracers traceOptions
     , ipSubscriptionTracer
         = tracerOnOff (traceIpSubscription traceOptions)
           $ annotateSeverity $ filterSeverity (pure . const (tracingSeverity True))
@@ -285,34 +282,27 @@ mkTracers traceOptions tracer = Tracers
           $ addName "Forge" tracer
       }
 
-    enableProtocolTracer
-      :: Show a
-      => (ProtocolTraceOptions -> Const Bool b)
-      -> Tracer IO String -> Tracer IO a
-    enableProtocolTracer f = if getConst $ f $ traceProtocols traceOptions
-      then showTracing
-      else const nullTracer
 
-    mkProtocolsTracers :: ProtocolTracers' peer blk DeserialiseFailure (Tracer IO)
-    mkProtocolsTracers = ProtocolTracers
+    mkProtocolsTracers :: TraceOptions -> ProtocolTracers' peer blk DeserialiseFailure (Tracer IO)
+    mkProtocolsTracers traceOpts = ProtocolTracers
       { ptChainSyncTracer
-        = enableProtocolTracer ptChainSyncTracer
-        $ withName "ChainSyncProtocol" tracer
+        = tracerOnOff (traceChainSyncProtocol traceOpts)
+        $ showTracing $ withName "ChainSyncProtocol" tracer
       , ptBlockFetchTracer
-        = enableProtocolTracer ptBlockFetchTracer
-        $ withName "BlockFetchProtocol" tracer
+        = tracerOnOff (traceBlockFetchProtocol traceOpts)
+        $ showTracing $ withName "BlockFetchProtocol" tracer
       , ptBlockFetchSerialisedTracer
-        = enableProtocolTracer ptBlockFetchSerialisedTracer
-        $ withName "BlockFetchProtocol" tracer
+        = tracerOnOff (traceBlockFetchProtocol traceOpts)
+        $ showTracing $ withName "BlockFetchProtocol" tracer
       , ptTxSubmissionTracer
-        = enableProtocolTracer ptTxSubmissionTracer
-        $ withName "TxSubmissionProtocol" tracer
+        = tracerOnOff (traceTxSubmissionProtocol traceOpts)
+        $ showTracing $ withName "TxSubmissionProtocol" tracer
       , ptLocalChainSyncTracer
-        = enableProtocolTracer ptLocalChainSyncTracer
-        $ withName "LocalChainSyncProtocol" tracer
+        = tracerOnOff (traceLocalChainSyncProtocol traceOpts)
+        $ showTracing $ withName "LocalChainSyncProtocol" tracer
       , ptLocalTxSubmissionTracer
-        = enableProtocolTracer ptLocalTxSubmissionTracer
-        $ withName "LocalTxSubmissionProtocol" tracer
+        = tracerOnOff (traceLocalTxSubmissionProtocol traceOpts)
+        $ showTracing $ withName "LocalTxSubmissionProtocol" tracer
       }
 
 -- | get information about a chain fragment
