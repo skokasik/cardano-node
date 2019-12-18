@@ -47,8 +47,6 @@ import qualified Ouroboros.Consensus.Node.Tracers as Consensus
 
 import           Cardano.Config.CommonCLI
 import           Cardano.Config.Orphanage
-import           Cardano.Config.Partial
-                 ( PartialLastKnownBlockVersion(..))
 import           Cardano.Config.Protocol
 import           Cardano.Config.Topology
 import           Cardano.Config.Types
