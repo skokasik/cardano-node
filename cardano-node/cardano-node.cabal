@@ -256,6 +256,15 @@ executable cardano-cli
                      , transformers-except
                      , transformers
 
+                     , formatting
+                     , mtl
+                     , canonical-json
+                     , bytestring
+                     , contra-tracer
+                     , iohk-monitoring
+                     , async
+                     , stm
+
   default-extensions:  NoImplicitPrelude
 
 executable chairman

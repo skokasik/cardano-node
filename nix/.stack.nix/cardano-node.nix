@@ -173,6 +173,14 @@
             (hsPkgs.time)
             (hsPkgs.transformers-except)
             (hsPkgs.transformers)
+            (hsPkgs.formatting)
+            (hsPkgs.mtl)
+            (hsPkgs.canonical-json)
+            (hsPkgs.bytestring)
+            (hsPkgs.contra-tracer)
+            (hsPkgs.iohk-monitoring)
+            (hsPkgs.async)
+            (hsPkgs.stm)
             ];
           };
         "chairman" = {
