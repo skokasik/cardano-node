@@ -15,7 +15,6 @@ module Cardano.Common.Parsers
   , parseFlag'
   , parseIntegral
   , parseIntegralWithDefault
-  , parseLastKnownBlockVersion
   , parseLogMetricsLast
   , parseLogOutputFile
   , parseNodeId
@@ -205,13 +204,6 @@ parseProtocol = asum
   , flagParser RealPBFT "real-pbft"
     "Permissive BFT consensus with a real ledger"
   ]
-
-parseLastKnownBlockVersion :: Parser PartialLastKnownBlockVersion
-parseLastKnownBlockVersion =
-  PartialLastKnownBlockVersion
-    <$> lastly (parseIntegral "protover-major" "Protocol version:  major component")
-    <*> lastly (parseIntegral "protover-minor" "Protocol version:  minor component")
-    <*> lastly (parseIntegral "protover-alt"   "Protocol version:  alt component")
 
 parseProtocolByron :: Parser (Last Protocol)
 parseProtocolByron =

@@ -157,7 +157,6 @@ issueGenesisUTxOExpenditure
   :: Address
   -> NonEmpty TxOut
   -> Text
-  -> NodeId
   -> Maybe Int
   -- ^ Number of core nodes.
   -> GenesisFile
@@ -173,7 +172,6 @@ issueGenesisUTxOExpenditure
   genRichAddr
   outs
   gHash
-  nId
   mNumCoreNodes
   genFile
   nMagic
@@ -183,7 +181,7 @@ issueGenesisUTxOExpenditure
   update
   ptcl
   sk =
-    withRealPBFT gHash (Just nId) mNumCoreNodes genFile nMagic sigThresh delCertFp sKeyFp update ptcl
+    withRealPBFT gHash Nothing mNumCoreNodes genFile nMagic sigThresh delCertFp sKeyFp update ptcl
       $ \(Consensus.ProtocolRealPBFT gc _ _ _ _)-> do
           case txSpendGenesisUTxOByronPBFT gc sk genRichAddr outs of
             tx@(ByronTx txid _) -> do
@@ -218,7 +216,6 @@ issueUTxOExpenditure
   :: NonEmpty TxIn
   -> NonEmpty TxOut
   -> Text
-  -> NodeId
   -> Maybe Int
   -- ^ Number of core nodes.
   -> GenesisFile
@@ -234,7 +231,6 @@ issueUTxOExpenditure
   ins
   outs
   gHash
-  nId
   mNumCoreNodes
   genFile
   nMagic
@@ -244,7 +240,7 @@ issueUTxOExpenditure
   update
   ptcl
   key = do
-    withRealPBFT gHash (Just nId) mNumCoreNodes genFile nMagic sigThresh delCertFp sKeyFp update ptcl $
+    withRealPBFT gHash Nothing mNumCoreNodes genFile nMagic sigThresh delCertFp sKeyFp update ptcl $
       \(Consensus.ProtocolRealPBFT gc _ _ _ _)-> do
         case txSpendUTxOByronPBFT gc key ins outs of
           tx@(ByronTx txid _) -> do
@@ -260,7 +256,6 @@ issueUTxOExpenditure
 nodeSubmitTx
   :: TopologyInfo
   -> Text
-  -> NodeId
   -> Maybe Int
   -- ^ Number of core nodes
   -> GenesisFile
@@ -276,7 +271,6 @@ nodeSubmitTx
 nodeSubmitTx
   topology
   gHash
-  nId
   mNumCoreNodes
   genFile
   nMagic
@@ -287,7 +281,7 @@ nodeSubmitTx
   update
   ptcl
   gentx =
-    withRealPBFT gHash (Just nId) mNumCoreNodes genFile nMagic sigThresh delCertFp sKeyFp update ptcl $
+    withRealPBFT gHash Nothing mNumCoreNodes genFile nMagic sigThresh delCertFp sKeyFp update ptcl $
       \p@Consensus.ProtocolRealPBFT{} -> do
         _ <- case gentx of
                ByronTx txid _ -> pure . putTextLn
