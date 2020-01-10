@@ -172,12 +172,31 @@ mkTracers traceOptions tracer = do
     { chainDBTracer
         = tracerOnOff (traceChainDB traceOptions)
           $ annotateSeverity
-          $ teeTraceChainTip StructuredLogging tracingVerbosity elided
+          $ teeTraceChainDB StructuredLogging tracingVerbosity elided
           $ addName "ChainDB" tracer
     , consensusTracers
         = mkConsensusTracers forgeTracers traceOptions
+          -- Adds following subhierarchies:
+          -- "ChainSyncClient"
+          -- "ChainSyncHeaderServer"
+          -- "ChainSyncBlockServer"
+          -- "BlockFetchDecision"
+          -- "BlockFetchClient"
+          -- "BlockFetchServer"
+          -- "TxInbound"
+          -- "TxOutbound"
+          -- "LocalTxSubmissionServer"
+          -- "ForgeTracer"
     , protocolTracers
         = mkProtocolsTracers traceOptions
+          -- Adds following subhierarchies:
+          -- "ChainSyncProtocol"
+          -- "ChainSyncProtocol"
+          -- "BlockFetchProtocol"
+          -- "BlockFetchProtocol"
+          -- "TxSubmissionProtocol"
+          -- "LocalChainSyncProtocol"
+          -- "LocalTxSubmissionProtocol"
     , ipSubscriptionTracer
         = tracerOnOff (traceIpSubscription traceOptions)
           $ annotateSeverity
@@ -199,7 +218,7 @@ mkTracers traceOptions tracer = do
           $ toLogObject' StructuredLogging tracingVerbosity
           $ addName "ErrorPolicy" tracer
     , muxTracer
-        =  tracerOnOff (traceMux traceOptions)
+        = tracerOnOff (traceMux traceOptions)
           $ annotateSeverity
           $ toLogObject' StructuredLogging tracingVerbosity
           $ addName "Mux" tracer
@@ -212,24 +231,24 @@ mkTracers traceOptions tracer = do
     tracingVerbosity :: TracingVerbosity
     tracingVerbosity = traceVerbosity traceOptions
 
-    teeTraceChainTip :: TracingFormatting
+    teeTraceChainDB :: TracingFormatting
                      -> TracingVerbosity
                      -> MVar (Maybe (WithSeverity (WithTip blk (ChainDB.TraceEvent blk))), Int)
                      -> Tracer IO (LogObject Text)
                      -> Tracer IO (WithSeverity (WithTip blk (ChainDB.TraceEvent blk)))
-    teeTraceChainTip tform tverb elided tr = Tracer $ \ev -> do
-        traceWith (teeTraceChainTip' tr) ev
-        traceWith (teeTraceChainTipElide tform tverb elided tr) ev
-    teeTraceChainTipElide :: TracingFormatting
+    teeTraceChainDB tform tverb elided tr = Tracer $ \ev -> do
+        traceWith (teeTraceChainDB' tr) ev
+        traceWith (teeTraceChainDBElide tform tverb elided tr) ev
+    teeTraceChainDBElide :: TracingFormatting
                           -> TracingVerbosity
                           -> MVar (Maybe (WithSeverity (WithTip blk (ChainDB.TraceEvent blk))), Int)
                           -> Tracer IO (LogObject Text)
                           -> Tracer IO (WithSeverity (WithTip blk (ChainDB.TraceEvent blk)))
-    teeTraceChainTipElide = elideToLogObject
+    teeTraceChainDBElide = elideToLogObject
 
-    teeTraceChainTip' :: Tracer IO (LogObject Text)
+    teeTraceChainDB' :: Tracer IO (LogObject Text)
                       -> Tracer IO (WithSeverity (WithTip blk (ChainDB.TraceEvent blk)))
-    teeTraceChainTip' tr =
+    teeTraceChainDB' tr =
         Tracer $ \(WithSeverity _ (WithTip _tip ev')) ->
           case ev' of
               (ChainDB.TraceAddBlockEvent ev) -> case ev of
@@ -257,8 +276,11 @@ mkTracers traceOptions tracer = do
     teeTraceBlockFetchDecision' tr =
         Tracer $ \(WithSeverity _ peers) -> do
           meta <- mkLOMeta Notice Confidential
+          let npeers = LogValue "connectedPeers" . PureI $ fromIntegral $ length peers
+          traceNamedObject (appendName "metrics" tr)  (meta, npeers)
+          -- TODO:  remove after a grace period
           let tr' = appendName "peers" tr
-          traceNamedObject tr' (meta, LogValue "connectedPeers" . PureI $ fromIntegral $ length peers)
+          traceNamedObject tr' (meta, npeers)
 
     mempoolTraceTransformer :: Tracer IO (LogObject a)
                             -> Tracer IO (TraceEventMempool blk)
@@ -294,6 +316,11 @@ mkTracers traceOptions tracer = do
 
     mempoolTracer :: Tracer IO (TraceEventMempool blk)
     mempoolTracer = Tracer $ \ev -> do
+      let tr = addName "Mempool" tracer
+      traceWith (mempoolTraceTransformer tr) ev
+      traceWith (measureTxsStart tr) ev
+      traceWith (showTracing $ withName "Mempool" tracer) ev
+      -- TODO:  remove after a grace period
       traceWith (mempoolTraceTransformer tracer) ev
       traceWith (measureTxsStart tracer) ev
       traceWith (showTracing $ withName "Mempool" tracer) ev
@@ -301,7 +328,7 @@ mkTracers traceOptions tracer = do
     forgeTracer :: ForgeTracers -> TraceOptions -> Tracer IO (Consensus.TraceForgeEvent blk (GenTx blk))
     forgeTracer forgeTracers traceOpts = Tracer $ \ev -> do
         traceWith (measureTxsEnd tracer) ev
-        traceWith (consensusForgeTracer) ev
+        traceWith consensusForgeTracer ev
       where
         -- The consensus tracer.
         consensusForgeTracer = tracerOnOff (traceForge traceOpts)
@@ -385,11 +412,12 @@ mkTracers traceOptions tracer = do
           $ toLogObject' StructuredLogging tracingVerbosity
           $ addName "LocalTxSubmissionServer" tracer
       , Consensus.mempoolTracer
-        = tracerOnOff (traceMempool traceOpts) $ mempoolTracer
+        = tracerOnOff (traceMempool traceOpts) mempoolTracer
       , Consensus.forgeTracer
         = forgeTracer forgeTracers traceOpts
       , Consensus.blockchainTimeTracer
         = Tracer $ \ev ->
+            -- This traces as 'cardano.node'.
             traceWith (toLogObject tracer) (readableTraceBlockchainTimeEvent ev)
       }
 

@@ -63,17 +63,8 @@ options:
       # `UTxO`-related messages during epoch validation.
       subtrace: NoTrace
   mapBackends:
-    cardano.node.metrics.ChainDB:
-      - EKGViewBK
-      - kind: UserDefinedBK
-        name: LiveViewBackend
     cardano.node.metrics:
-      - kind: UserDefinedBK
-        name: LiveViewBackend
-    cardano.node.BlockFetchDecision:
-      - kind: UserDefinedBK
-        name: LiveViewBackend
-    cardano.node.peers.BlockFetchDecision:
+      - EKGViewBK
       - kind: UserDefinedBK
         name: LiveViewBackend
 
