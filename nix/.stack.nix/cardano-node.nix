@@ -31,6 +31,7 @@
           (hsPkgs.cardano-prelude)
           (hsPkgs.cardano-prelude-test)
           (hsPkgs.cardano-shell)
+          (hsPkgs.cardano-slotting)
           (hsPkgs.contra-tracer)
           (hsPkgs.cborg)
           (hsPkgs.containers)
