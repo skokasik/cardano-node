@@ -62,8 +62,11 @@ import           Cardano.BM.Data.SubTrace
 import           Cardano.BM.Trace
 
 import           Cardano.Node.TUI.GitRev (gitRev)
+import           Ouroboros.Network.BlockFetch.Client (FetchClientStateVars)
+import           Ouroboros.Consensus.Block (GetHeader(..))
 import           Ouroboros.Consensus.Node (NodeKernel(..), ConnectionId(..))
 import           Ouroboros.Consensus.NodeId
+import           Ouroboros.Network.BlockFetch.ClientRegistry (readFetchClientsStateVars)
 import           Paths_cardano_node (version)
 
 -- constants, to be evaluated from host system
@@ -216,9 +219,13 @@ instance IsEffectuator (LiveViewBackend blk) Text where
             LogObject _ _ (LogValue "density" (PureD density)) ->
                 modifyMVar_ (getbe lvbe) $ \lvs ->
                         return $ lvs { lvsChainDensity = 0.05 + density * 100.0 }
-            LogObject _ _ (LogValue "connectedPeers" (PureI npeers)) ->
-                modifyMVar_ (getbe lvbe) $ \lvs ->
-                        return $ lvs { lvsPeersConnected = fromIntegral npeers }
+            LogObject _ _ (LogValue "connectedPeers" (PureI npeers)) -> do
+                modifyMVar_ (getbe lvbe) $ \lvs -> do
+                        peerStates <- fromMaybe mempty <$>
+                          (sequence $ atomically . readFetchClientsStateVars . getFetchClientRegistry <$> lvsNodeKernel lvs)
+                        return $ lvs
+                          { lvsPeersConnected = fromIntegral npeers
+                          , lvsBlockPeerStates = peerStates }
             LogObject _ _ (LogValue "txsProcessed" (PureI txsProcessed)) ->
                 modifyMVar_ (getbe lvbe) $ \lvs ->
                         return $ lvs { lvsTransactions = lvsTransactions lvs + fromIntegral txsProcessed }
@@ -292,6 +299,7 @@ data LiveViewState blk a = LiveViewState
     , lvsMetricsThread       :: Maybe (Async.Async ())
     , lvsNodeThread          :: Maybe (Async.Async ())
     , lvsNodeKernel          :: Maybe (NodeKernel IO ConnectionId blk)
+    , lvsBlockPeerStates     :: Map ConnectionId (FetchClientStateVars IO (Header blk))
     , lvsColorTheme          :: ColorTheme
     }
 
@@ -354,6 +362,7 @@ initLiveViewState = do
                 , lvsMetricsThread       = Nothing
                 , lvsNodeThread          = Nothing
                 , lvsNodeKernel          = Nothing
+                , lvsBlockPeerStates     = mempty
                 , lvsColorTheme          = DarkTheme
                 }
 
@@ -615,8 +624,12 @@ systemStatsW p =
                          , padBottom (T.Pad 1) networkUsageOutBar
                          ]
                   ]
+           , hBox peerBars
            ]
   where
+    peerBars :: forall n. [Widget n]
+    peerBars = []
+    
     -- use mapAttrNames
     memPoolBar :: forall n. Widget n
     memPoolBar = updateAttrMap
