@@ -12,6 +12,7 @@ module Cardano.Node.TUI.LiveView (
     , captureCounters
     , setTopology
     , setNodeThread
+    , setNodeKernel
     ) where
 
 import           Cardano.Prelude hiding (isPrefixOf, on, show)
@@ -61,6 +62,7 @@ import           Cardano.BM.Data.SubTrace
 import           Cardano.BM.Trace
 
 import           Cardano.Node.TUI.GitRev (gitRev)
+import           Ouroboros.Consensus.Node (NodeKernel(..), ConnectionId(..))
 import           Ouroboros.Consensus.NodeId
 import           Paths_cardano_node (version)
 
@@ -74,10 +76,11 @@ pagesize = 4096
 clktck :: Integer
 clktck = 100
 
-type LiveViewMVar a = MVar (LiveViewState a)
-newtype LiveViewBackend a = LiveViewBackend { getbe :: LiveViewMVar a }
+type LiveViewMVar blk a = MVar (LiveViewState blk a)
+data LiveViewBackend blk a =
+  LiveViewBackend { getbe :: LiveViewMVar blk a }
 
-instance IsBackend LiveViewBackend Text where
+instance IsBackend (LiveViewBackend blk) Text where
     bekind _ = UserDefinedBK "LiveViewBackend"
     realize _ = do
         initState <- initLiveViewState
@@ -98,7 +101,7 @@ instance IsBackend LiveViewBackend Text where
 
     unrealize be = putStrLn $ "unrealize " <> show (bekind be)
 
-instance IsEffectuator LiveViewBackend Text where
+instance IsEffectuator (LiveViewBackend blk) Text where
     effectuate lvbe item =
         case item of
             LogObject ["cardano","node","metrics"] meta content ->
@@ -237,7 +240,7 @@ data ColorTheme
     | LightTheme
     deriving (Eq)
 
-data LiveViewState a = LiveViewState
+data LiveViewState blk a = LiveViewState
     { lvsQuit                :: Bool
     , lvsRelease             :: String
     , lvsNodeId              :: Text
@@ -288,10 +291,11 @@ data LiveViewState a = LiveViewState
     , lvsUIThread            :: Maybe (Async.Async ())
     , lvsMetricsThread       :: Maybe (Async.Async ())
     , lvsNodeThread          :: Maybe (Async.Async ())
+    , lvsNodeKernel          :: Maybe (NodeKernel IO ConnectionId blk)
     , lvsColorTheme          :: ColorTheme
-    } deriving (Eq)
+    }
 
-initLiveViewState :: IO (LiveViewState a)
+initLiveViewState :: IO (LiveViewState blk a)
 initLiveViewState = do
     now <- getCurrentTime
 
@@ -349,10 +353,11 @@ initLiveViewState = do
                 , lvsUIThread            = Nothing
                 , lvsMetricsThread       = Nothing
                 , lvsNodeThread          = Nothing
+                , lvsNodeKernel          = Nothing
                 , lvsColorTheme          = DarkTheme
                 }
 
-setTopology :: LiveViewBackend a -> NodeId -> IO ()
+setTopology :: LiveViewBackend blk a -> NodeId -> IO ()
 setTopology lvbe nodeid =
     modifyMVar_ (getbe lvbe) $ \lvs ->
         return $ lvs { lvsNodeId = namenum }
@@ -361,12 +366,17 @@ setTopology lvbe nodeid =
         CoreId num  -> "C" <> pack (show num)
         RelayId num -> "R" <> pack (show num)
 
-setNodeThread :: LiveViewBackend a -> Async.Async () -> IO ()
+setNodeThread :: LiveViewBackend blk a -> Async.Async () -> IO ()
 setNodeThread lvbe nodeThr =
     modifyMVar_ (getbe lvbe) $ \lvs ->
         return $ lvs { lvsNodeThread = Just nodeThr }
 
-captureCounters :: LiveViewBackend a -> Trace IO Text -> IO ()
+setNodeKernel :: LiveViewBackend blk a -> NodeKernel IO ConnectionId blk -> IO ()
+setNodeKernel lvbe nodeKern =
+    modifyMVar_ (getbe lvbe) $ \lvs ->
+        return $ lvs { lvsNodeKernel = Just nodeKern }
+
+captureCounters :: LiveViewBackend blk a -> Trace IO Text -> IO ()
 captureCounters lvbe trace0 = do
     let trace' = appendName "metrics" trace0
         counters = [MemoryStats, ProcessStats, NetStats, IOStats]
@@ -506,10 +516,10 @@ darkTheme = newTheme (V.white `on` darkMainBG)
 -- UI drawing
 -------------------------------------------------------------------------------
 
-drawUI :: LiveViewState a -> [Widget ()]
+drawUI :: LiveViewState blk a -> [Widget ()]
 drawUI p = [mainWidget p]
 
-mainWidget :: LiveViewState a -> Widget ()
+mainWidget :: LiveViewState blk a -> Widget ()
 mainWidget p =
       C.hCenter
     . C.vCenter
@@ -517,7 +527,7 @@ mainWidget p =
     . vLimitPercent 96
     $ mainContentW p
 
-mainContentW :: LiveViewState a -> Widget ()
+mainContentW :: LiveViewState blk a -> Widget ()
 mainContentW p =
       withBorderStyle BS.unicode
     . B.border $ vBox
@@ -539,7 +549,7 @@ keysMessageW =
            , txt " to change color theme"
            ]
 
-headerW :: LiveViewState a -> Widget ()
+headerW :: LiveViewState blk a -> Widget ()
 headerW p =
       C.hCenter
     . padTop   (T.Pad 1)
@@ -556,7 +566,7 @@ headerW p =
              $ txt (lvsNodeId p)
            ]
 
-systemStatsW :: LiveViewState a -> Widget ()
+systemStatsW :: LiveViewState blk a -> Widget ()
 systemStatsW p =
       padTop   (T.Pad 1)
     . padLeft  (T.Pad 2)
@@ -677,7 +687,7 @@ systemStatsW p =
     bar lbl pcntg = P.progressBar lbl pcntg
     lvsMemUsagePerc = lvsMemoryUsageCurr p / max 200 (lvsMemoryUsageMax p)
 
-nodeInfoW :: LiveViewState a -> Widget ()
+nodeInfoW :: LiveViewState blk a -> Widget ()
 nodeInfoW p =
       padTop    (T.Pad 2)
     . padLeft   (T.Pad 3)
@@ -698,7 +708,7 @@ nodeInfoLabels =
            , padTop (T.Pad 1) $ txt "peers connected:"
            ]
 
-nodeInfoValues :: LiveViewState a -> Widget ()
+nodeInfoValues :: LiveViewState blk a -> Widget ()
 nodeInfoValues lvs =
       withAttr valueAttr
     $ vBox [                    str (lvsVersion lvs)
@@ -713,7 +723,7 @@ nodeInfoValues lvs =
            , padTop (T.Pad 1) $ str (show . lvsPeersConnected $ lvs)
            ]
 
-eventHandler :: LiveViewState a -> BrickEvent n (LiveViewBackend a) -> EventM n (Next (LiveViewState a))
+eventHandler :: LiveViewState blk a -> BrickEvent n (LiveViewBackend blk a) -> EventM n (Next (LiveViewState blk a))
 eventHandler prev (AppEvent lvBackend) = do
     next <- liftIO . readMVar . getbe $ lvBackend
     M.continue $ next { lvsColorTheme = lvsColorTheme prev }
@@ -734,7 +744,7 @@ eventHandler lvs  (VtyEvent e)         =
         Just t  -> liftIO $ Async.cancel t
 eventHandler lvs  _                    = M.halt lvs
 
-app :: M.App (LiveViewState a) (LiveViewBackend a) ()
+app :: M.App (LiveViewState blk a) (LiveViewBackend blk a) ()
 app =
     M.App { M.appDraw = drawUI
           , M.appChooseCursor = M.showFirstCursor
