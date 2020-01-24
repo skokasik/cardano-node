@@ -80,7 +80,7 @@ clktck :: Integer
 clktck = 100
 
 type LiveViewMVar blk a = MVar (LiveViewState blk a)
-data LiveViewBackend blk a =
+newtype LiveViewBackend blk a =
   LiveViewBackend { getbe :: LiveViewMVar blk a }
 
 instance IsBackend (LiveViewBackend blk) Text where
@@ -157,8 +157,8 @@ instance IsEffectuator (LiveViewBackend blk) Text where
                         let tns = utc2ns (tstamp meta)
                         in
                         modifyMVar_ (getbe lvbe) $ \lvs ->
-                            let tdiff = min 1 $ (fromIntegral (tns - lvsCPUUsageNs lvs)) / 1000000000 :: Float
-                                cpuperc = (fromIntegral (ticks - lvsCPUUsageLast lvs)) / (fromIntegral clktck) / tdiff
+                            let tdiff = min 1 $ fromIntegral (tns - lvsCPUUsageNs lvs) / 1000000000 :: Float
+                                cpuperc = fromIntegral (ticks - lvsCPUUsageLast lvs) / fromIntegral clktck / tdiff
                             in
                             return $ lvs { lvsCPUUsagePerc = cpuperc
                                          , lvsCPUUsageLast = ticks
@@ -219,10 +219,10 @@ instance IsEffectuator (LiveViewBackend blk) Text where
             LogObject _ _ (LogValue "density" (PureD density)) ->
                 modifyMVar_ (getbe lvbe) $ \lvs ->
                         return $ lvs { lvsChainDensity = 0.05 + density * 100.0 }
-            LogObject _ _ (LogValue "connectedPeers" (PureI npeers)) -> do
+            LogObject _ _ (LogValue "connectedPeers" (PureI npeers)) ->
                 modifyMVar_ (getbe lvbe) $ \lvs -> do
                         peerStates <- fromMaybe mempty <$>
-                          (sequence $ atomically . readFetchClientsStateVars . getFetchClientRegistry <$> lvsNodeKernel lvs)
+                          sequence (atomically . readFetchClientsStateVars . getFetchClientRegistry <$> lvsNodeKernel lvs)
                         return $ lvs
                           { lvsPeersConnected = fromIntegral npeers
                           , lvsBlockPeerStates = peerStates }
@@ -591,7 +591,7 @@ systemStatsW p =
                   , padBottom (T.Pad 1) memPoolBytesBar
                   ]
            , vBox [ hBox [ txt "Memory usage:"
-                         , withAttr barValueAttr . padLeft T.Max $ str $ (take 5 $ show $ max (lvsMemoryUsageMax p) 200.0) <> " MB"
+                         , withAttr barValueAttr . padLeft T.Max $ str $ take 5 (show $ max (lvsMemoryUsageMax p) 200.0) <> " MB"
                          ]
                   , padBottom (T.Pad 1) memUsageBar
                   ]
@@ -601,25 +601,25 @@ systemStatsW p =
                   , padBottom (T.Pad 1) cpuUsageBar
                   ]
            , hBox [ vBox [ hBox [ txt "Disk R:"
-                                , withAttr barValueAttr . padLeft T.Max $ str $ (take 5 $ show $ max (lvsDiskUsageRMax p) 1.0) <> " KB/s"
+                                , withAttr barValueAttr . padLeft T.Max $ str $ take 5 (show $ max (lvsDiskUsageRMax p) 1.0) <> " KB/s"
                                 ]
                          , padBottom (T.Pad 1) diskUsageRBar
                          ]
                   , padLeft (T.Pad 3) $
                     vBox [ hBox [ txt "Disk W:"
-                                , withAttr barValueAttr . padLeft T.Max $ str $ (take 5 $ show $ max (lvsDiskUsageWMax p) 1.0) <> " KB/s"
+                                , withAttr barValueAttr . padLeft T.Max $ str $ take 5 (show $ max (lvsDiskUsageWMax p) 1.0) <> " KB/s"
                                 ]
                          , padBottom (T.Pad 1) diskUsageWBar
                          ]
                   ]
            , hBox [ vBox [ hBox [ txt "Network In:"
-                                , withAttr barValueAttr . padLeft T.Max $ str $ (take 5 $ show $ max (lvsNetworkUsageInMax p) 1.0) <> " KB/s"
+                                , withAttr barValueAttr . padLeft T.Max $ str $ take 5 (show $ max (lvsNetworkUsageInMax p) 1.0) <> " KB/s"
                                 ]
                          , padBottom (T.Pad 1) networkUsageInBar
                          ]
                   , padLeft (T.Pad 3) $
                     vBox [ hBox [ txt "Network Out:"
-                                , withAttr barValueAttr . padLeft T.Max $ str $ (take 5 $ show $ max (lvsNetworkUsageOutMax p) 1.0) <> " KB/s"
+                                , withAttr barValueAttr . padLeft T.Max $ str $ take 5 (show $ max (lvsNetworkUsageOutMax p) 1.0) <> " KB/s"
                                 ]
                          , padBottom (T.Pad 1) networkUsageOutBar
                          ]
@@ -697,7 +697,7 @@ systemStatsW p =
     networkUsageOutLabel = Just $ take 5 (show $ lvsNetworkUsageOutCurr p) ++ " KB/s"
 
     bar :: forall n. Maybe String -> Float -> Widget n
-    bar lbl pcntg = P.progressBar lbl pcntg
+    bar = P.progressBar
     lvsMemUsagePerc = lvsMemoryUsageCurr p / max 200 (lvsMemoryUsageMax p)
 
 nodeInfoW :: LiveViewState blk a -> Widget ()
