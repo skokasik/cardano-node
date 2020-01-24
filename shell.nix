@@ -4,6 +4,7 @@
 let
   pkgs = localLib.iohkNix.pkgs;
   default = import ./default.nix {};
+  byron-proxy-src = (import nix/sources.nix).cardano-byron-proxy;
   devops = pkgs.stdenv.mkDerivation {
     name = "devops-shell";
     buildInputs = [
@@ -31,6 +32,7 @@ default.nix-tools._raw.shellFor {
     ghcid.components.exes.ghcid
   ]) ++
   (with default.nix-tools._raw._config._module.args.pkgs; [
+    (import byron-proxy-src {}).nix-tools.exes.cardano-byron-proxy
     tmux
   ]);
 } // { inherit devops; }
