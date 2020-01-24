@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 TARGETDIR=cardano-byron-proxy.git
-if [ ! -d ${TARGETDIR} ]; then
+if ! type -P cardano-byron-proxy || test ! -d ${TARGETDIR}; then
   echo "cannot find byron-proxy. run './prepare-byron-proxy.sh' first."
   exit 1
 fi
@@ -11,7 +11,9 @@ set -eo pipefail
 
 cd ${TARGETDIR}
 
-if [[ $1 == 'stack' ]]; then
+if type -P cardano-byron-proxy; then
+  PROXY="cardano-byron-proxy"
+elif [[ $1 == 'stack' ]]; then
   PROXY="stack --nix exec cardano-byron-proxy -- "
   shift
 elif [[ $1 == 'cabal' ]]; then
@@ -21,6 +23,9 @@ else
   # Default to stack
   PROXY="stack --nix exec cardano-byron-proxy -- "
 fi
+
+case "$1" in
+        cabal | stack ) shift;; esac
 
 ${PROXY} \
   +RTS -T -RTS \
