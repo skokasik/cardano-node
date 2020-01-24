@@ -7,14 +7,22 @@ if [ ! -d ${TARGETDIR} ]; then
 fi
 
 BASEDIR=$(realpath $(dirname $0))
-set -euo pipefail
+set -eo pipefail
 
 cd ${TARGETDIR}
 
-RUNNER="cabal v2-run exe:cardano-byron-proxy --"
-RUNNER="stack --nix exec cardano-byron-proxy --"
+if [[ $1 == 'stack' ]]; then
+  PROXY="stack --nix exec cardano-byron-proxy -- "
+  shift
+elif [[ $1 == 'cabal' ]]; then
+  PROXY="cabal v2-run cardano-byron-proxy -- "
+  shift
+else
+  # Default to stack
+  PROXY="stack --nix exec cardano-byron-proxy -- "
+fi
 
-${RUNNER} \
+${PROXY} \
   +RTS -T -RTS \
   --database-path state-proxy-mainnet/db \
   --index-path state-proxy-mainnet/index \
