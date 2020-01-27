@@ -657,15 +657,17 @@ systemStatsW p =
       padTop   (T.Pad 1)
     . padLeft  (T.Pad 2)
     . padRight (T.Pad 2)
-    $ vBox [ vBox [ hBox [ txt "Mempool txs:"
-                         , withAttr barValueAttr . padLeft T.Max . str . show $ lvsMempoolCapacity p
+    $ vBox [ hBox [ vBox [ hBox [ txt "Mempool (KBs):"
+                                , withAttr barValueAttr . padLeft T.Max . str . show . floor . (/ 1000) . fromIntegral $ lvsMempoolCapacityBytes p
+                                ]
+                         , padBottom (T.Pad 1) memPoolBytesBar
                          ]
-                  , padBottom (T.Pad 1) memPoolBar
-                  ]
-           , vBox [ hBox [ txt "Mempool bytes:"
-                         , withAttr barValueAttr . padLeft T.Max . str . show $ lvsMempoolCapacityBytes p
+                  , padLeft (T.Pad 2) $
+                    vBox [ hBox [ txt "Mempool (Txs):"
+                                , withAttr barValueAttr . padLeft T.Max . str . show $ lvsMempoolCapacity p
+                                ]
+                         , padBottom (T.Pad 1) memPoolBar
                          ]
-                  , padBottom (T.Pad 1) memPoolBytesBar
                   ]
            , vBox [ hBox [ txt "Memory usage:"
                          , withAttr barValueAttr . padLeft T.Max $ str $ take 5 (show $ max (lvsMemoryUsageMax p) 200.0) <> " MB"
