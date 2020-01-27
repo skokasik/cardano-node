@@ -271,11 +271,6 @@ data Screen
     = MainView
     | Peers
 
-nextScreen :: Screen -> Screen
-nextScreen = \case
-  MainView -> Peers
-  Peers -> MainView
-
 data LiveViewState blk a = LiveViewState
     { lvsQuit                :: Bool
     , lvsScreen              :: Screen
@@ -341,14 +336,14 @@ type PeerUI blk =
 
 ppPeer :: PeerUI blk -> Text
 ppPeer (cid, _af, status, inflight) =
-  pack $ printf "%20s: %8s, %s" (ppCid cid) (ppStatus status) (ppInFlight inflight)
+  pack $ printf "%-20s %-8s %s" (ppCid cid) (ppStatus status) (ppInFlight inflight)
  where
    ppCid :: ConnectionId -> String
    ppCid = show . remoteAddress
 
    ppInFlight :: Net.PeerFetchInFlight header -> String
    ppInFlight f = printf
-     "slot %5s | requests/blocks/bytes in flight:  %d/%d/%d"
+     "%5s  %3d  %5d  %6d"
      (ppMaxSlotNo $ Net.peerFetchMaxSlotNo f)
      (Net.peerFetchReqsInFlight f)
      (Set.size $ Net.peerFetchBlocksInFlight f)
@@ -609,11 +604,19 @@ mainContentW p = hBox [systemStatsW p, nodeInfoW p]
 
 peerListContentW :: LiveViewState blk a -> Widget ()
 peerListContentW p
-  = padTop    (T.Pad 1)
-  . padBottom (T.Pad 1)
-  . padLeft   (T.Pad 2)
+  = padLeft   (T.Pad 2)
   . padRight  (T.Pad 2)
-  . vBox $ txt . ppPeer <$> lvsPeers p
+  . padBottom (T.Pad 1)
+  . padTop    (T.Pad 1)
+  . vBox
+  . ([ txt "Known peers"
+       & padBottom (T.Pad 1)
+     , txt . pack $ printf "%-20s %-8s %-5s  %-10s"
+       ("Address" :: String) ("Status" :: String) ("Slot" :: String) ("In flight:" :: String)
+     , (txt . pack $ printf "%36s Reqs Blocks   Bytes" ("" :: String))
+       & padBottom (T.Pad 1)
+     ] <>)
+  $ txt . ppPeer <$> lvsPeers p
 
 keysMessageW :: Widget ()
 keysMessageW =
@@ -627,7 +630,9 @@ keysMessageW =
            , withAttr keyAttr $ txt "D"
            , txt " to change color theme, "
            , withAttr keyAttr $ txt "P"
-           , txt " to view peer details"
+           , txt " for peer list, "
+           , withAttr keyAttr $ txt "Esc"
+           , txt " return to main screen"
            ]
 
 headerW :: LiveViewState blk a -> Widget ()
@@ -820,7 +825,8 @@ eventHandler lvs  (VtyEvent e)         =
         V.EvKey  (V.KChar 'D') []        -> M.continue $ lvs { lvsColorTheme = DarkTheme }
         V.EvKey  (V.KChar 'l') []        -> M.continue $ lvs { lvsColorTheme = LightTheme }
         V.EvKey  (V.KChar 'L') []        -> M.continue $ lvs { lvsColorTheme = LightTheme }
-        V.EvKey  (V.KChar 'p') []        -> M.continue $ lvs { lvsScreen = nextScreen $ lvsScreen lvs }
+        V.EvKey  (V.KChar 'p') []        -> M.continue $ lvs { lvsScreen = Peers }
+        V.EvKey  V.KEsc        []        -> M.continue $ lvs { lvsScreen = MainView }
         _                                -> M.continue lvs
   where
     stopNodeThread :: MonadIO m => m ()
