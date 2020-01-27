@@ -370,7 +370,7 @@ initLiveViewState = do
     return $ LiveViewState
                 { lvsQuit                = False
                 , lvsScreen              = MainView
-                , lvsRelease             = "Shelley"
+                , lvsRelease             = "Byron"
                 , lvsNodeId              = ""
                 , lvsVersion             = showVersion version
                 , lvsCommit              = unpack gitRev
@@ -643,7 +643,7 @@ headerW p =
     . padRight (T.Pad 2)
     $ hBox [   withAttr cardanoAttr
              . padRight (T.Pad 10)
-             $ txt "CARDANO SL"
+             $ txt "CARDANO"
            , txt "release: "
            ,   withAttr releaseAttr
              $ str (lvsRelease p)
