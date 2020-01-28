@@ -439,8 +439,13 @@ setNodeThread lvbe nodeThr =
 
 setNodeKernel :: LiveViewBackend blk a -> NodeKernel IO ConnectionId blk -> IO ()
 setNodeKernel lvbe nodeKern =
-    modifyMVar_ (getbe lvbe) $ \lvs ->
-        return $ lvs { lvsNodeKernel = Just nodeKern }
+    modifyMVar_ (getbe lvbe) $ \lvs -> do
+        -- TODO:  use the new mempool API for size cap query
+        -- mempool <- getMempool nodeKern
+        return $ lvs
+          { lvsNodeKernel = Just nodeKern
+          -- , lvsMempoolCapacity = 0
+          }
 
 captureCounters :: LiveViewBackend blk a -> Trace IO Text -> IO ()
 captureCounters lvbe trace0 = do
