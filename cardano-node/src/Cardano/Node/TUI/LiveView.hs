@@ -286,25 +286,15 @@ data LiveViewState blk a = LiveViewState
     , lvsBlocksMinted        :: Word64
     , lvsTransactions        :: Word64
     , lvsPeersConnected      :: Word64
-    , lvsMempool             :: Word64
-    , lvsMempoolPerc         :: Float
-    , lvsMempoolBytes        :: Word64
-    , lvsMempoolBytesPerc    :: Float
+    , lvsMempoolTxs          :: EWMA Word64
+    , lvsMempoolBytes        :: EWMA Word64
     , lvsCPUUsagePerc        :: Float
     , lvsMemoryUsageCurr     :: Float
     , lvsMemoryUsageMax      :: Float
-    , lvsDiskUsageRPerc      :: Float
-    , lvsDiskUsageRCurr      :: Float
-    , lvsDiskUsageRMax       :: Float
-    , lvsDiskUsageWPerc      :: Float
-    , lvsDiskUsageWCurr      :: Float
-    , lvsDiskUsageWMax       :: Float
-    , lvsNetworkUsageInPerc  :: Float
-    , lvsNetworkUsageInCurr  :: Float
-    , lvsNetworkUsageInMax   :: Float
-    , lvsNetworkUsageOutPerc :: Float
-    , lvsNetworkUsageOutCurr :: Float
-    , lvsNetworkUsageOutMax  :: Float
+    , lvsDiskUsageR          :: EWMA Float
+    , lvsDiskUsageW          :: EWMA Float
+    , lvsNetworkUsageIn      :: EWMA Float
+    , lvsNetworkUsageOut     :: EWMA Float
     -- internal state
     , lvsStartTime           :: UTCTime
     , lvsCPUUsageLast        :: Integer
@@ -318,7 +308,7 @@ data LiveViewState blk a = LiveViewState
     , lvsNetworkUsageOutLast :: Word64
     , lvsNetworkUsageOutNs   :: Word64
     , lvsMempoolCapacity     :: Word64
-    , lvsMempoolCapacityBytes :: Word64
+    , lvsMaxBytesPerTx       :: Word64
     , lvsMessage             :: Maybe a
     , lvsUIThread            :: Maybe (Async.Async ())
     , lvsMetricsThread       :: Maybe (Async.Async ())
@@ -359,12 +349,33 @@ ppPeer (cid, _af, status, inflight) =
    ppStatus Net.PeerFetchStatusBusy          = "fetching"
    ppStatus (Net.PeerFetchStatusReady _blks) = "ready"
 
+data EWMA a
+  = EWMA
+  { ewmaLast  :: a
+  , ewmaPerc  :: Float
+  , ewmaDecay :: Float
+  } deriving (Functor)
+
+mkEWMA :: Float -> Maybe (EWMA a)
+mkEWMA decay = EWMA 0 0 <$>
+  if decay > 0.999 then Nothing else Just decay
+
+ewmaUpdate :: a -> EWMA a -> EWMA a
+ewmaUpdate new (EWMA last perc decay) = EWMA
+  { ewmaLast = last * decay + new * (1 - decay)
+  , ewmaPerc = if new > last100perc
+               then 1
+               else 
+  }
+ where last100perc :: Float
+       last100perc = 1
+       
+
 initLiveViewState :: IO (LiveViewState blk a)
 initLiveViewState = do
     now <- getCurrentTime
 
     let -- TODO:  obtain from configuration
-        mempoolCapacity = 200 :: Word64
         maxBytesPerTx = 4096 :: Word64
 
     return $ LiveViewState
@@ -382,38 +393,26 @@ initLiveViewState = do
                 , lvsBlocksMinted        = 0
                 , lvsTransactions        = 0
                 , lvsPeersConnected      = 0
-                , lvsMempool             = 0
-                , lvsMempoolPerc         = 0.0
-                , lvsMempoolBytes        = 0
+                , lvsMempoolTxs          = mkEWMA
+                , lvsMempoolTxsPerc      = 0.0
+                , lvsMempoolBytes        = mkEWMA
                 , lvsMempoolBytesPerc    = 0.0
                 , lvsCPUUsagePerc        = 0.58
                 , lvsMemoryUsageCurr     = 0.0
                 , lvsMemoryUsageMax      = 0.2
-                , lvsDiskUsageRPerc      = 0.0
-                , lvsDiskUsageRCurr      = 0.0
-                , lvsDiskUsageRMax       = 0.0
-                , lvsDiskUsageWPerc      = 0.0
-                , lvsDiskUsageWCurr      = 0.0
-                , lvsDiskUsageWMax       = 0.0
-                , lvsNetworkUsageInPerc  = 0.0
-                , lvsNetworkUsageInCurr  = 0.0
-                , lvsNetworkUsageInMax   = 0.0
-                , lvsNetworkUsageOutPerc = 0.0
-                , lvsNetworkUsageOutCurr = 0.0
-                , lvsNetworkUsageOutMax  = 0.0
                 , lvsStartTime           = now
                 , lvsCPUUsageLast        = 0
                 , lvsCPUUsageNs          = 10000
-                , lvsDiskUsageRLast      = 0
+                , lvsDiskUsageR          = mkEWMA
                 , lvsDiskUsageRNs        = 10000
-                , lvsDiskUsageWLast      = 0
+                , lvsDiskUsageW          = mkEWMA
                 , lvsDiskUsageWNs        = 10000
-                , lvsNetworkUsageInLast  = 0
+                , lvsNetworkUsageIn      = mkEWMA
                 , lvsNetworkUsageInNs    = 10000
-                , lvsNetworkUsageOutLast = 0
+                , lvsNetworkUsageOut     = mkEWMA
                 , lvsNetworkUsageOutNs   = 10000
-                , lvsMempoolCapacity     = mempoolCapacity
-                , lvsMempoolCapacityBytes = mempoolCapacity * maxBytesPerTx
+                , lvsMempoolCapacity     = 0
+                , lvsMaxBytesPerTx       = maxBytesPerTx
                 , lvsMessage             = Nothing
                 , lvsUIThread            = Nothing
                 , lvsMetricsThread       = Nothing
