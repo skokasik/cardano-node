@@ -17,19 +17,22 @@ let
     node = getScript "node";
   };
   # TODO: add docker images
-  #wrapDockerImage = cluster: let
-  #  images = (getArchDefault "x86_64-linux").dockerImages;
-  #  wrapImage = image: commonLib.pkgs.runCommand "${image.name}-hydra" {} ''
-  #    mkdir -pv $out/nix-support/
-  #    cat <<EOF > $out/nix-support/hydra-build-products
-  #    file dockerimage ${image}
-  #    EOF
-  #  '';
+  wrapDockerImage = cluster: let
+    images = (getArchDefault "x86_64-linux").dockerImages;
+    wrapImage = image: commonLib.pkgs.runCommand "${image.name}-hydra" {} ''
+      mkdir -pv $out/nix-support/
+      cat <<EOF > $out/nix-support/hydra-build-products
+      file dockerimage ${image}
+      EOF
+    '';
+  in {
+    node = wrapImage images.${cluster}.node;
+  };
   makeRelease = cluster: {
     name = cluster;
     value = {
       scripts = makeScripts cluster;
-      #dockerImage = wrapDockerImage cluster;
+      dockerImage = wrapDockerImage cluster;
     };
   };
 in

@@ -37,9 +37,10 @@ in
 let
   system = if target != "x86_64-windows" then target else builtins.currentSystem;
   crossSystem = if target == "x86_64-windows" then lib.systems.examples.mingwW64 else null;
+  pkgs = import ./nix/pkgs.nix { inherit system crossSystem; };
   nixTools = import ./nix/nix-tools.nix { inherit system crossSystem; };
   inherit (commonLib) environments;
-  scripts = commonLib.pkgs.callPackage ./nix/scripts.nix {
+  scripts = import ./nix/scripts.nix {
       inherit commonLib customConfig;
   };
   # NixOS tests run a proxy and validate it listens
@@ -47,9 +48,12 @@ let
     inherit (commonLib) pkgs;
     inherit commonLib interactive;
   };
+  dockerImage = import ./nix/docker.nix {
+  };
 in {
   inherit scripts nixosTests;
   inherit (nixTools) nix-tools;
   inherit (commonLib.iohkNix) check-nix-tools check-hydra pkgs;
   inherit environments;
+  inherit dockerImage;
 }
