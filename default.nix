@@ -37,7 +37,7 @@ in
 let
   system = if target != "x86_64-windows" then target else builtins.currentSystem;
   crossSystem = if target == "x86_64-windows" then lib.systems.examples.mingwW64 else null;
-  
+
   nixTools = import ./nix/nix-tools.nix { inherit system crossSystem; };
   inherit (commonLib) environments;
   scripts = import ./nix/scripts.nix {
