@@ -48,7 +48,7 @@ let
     inherit (commonLib) pkgs;
     inherit commonLib interactive;
   };
-  dockerImage = import ./nix/docker.nix {
+  dockerImage = pkgs.callPackage ./nix/docker.nix {
   };
 in {
   inherit scripts nixosTests;
