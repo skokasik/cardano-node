@@ -46,7 +46,8 @@ let
 in
   dockerTools.buildImage {
     name = repoName;
-    tag = "${cardano-node.version}";
+    ### tag = "${cardano-node.version}";
+    tag = "yolo";
     fromImage = baseImage;
     contents = [
       cardano-node
@@ -58,4 +59,4 @@ in
         "${defaultPort}/tcp" = {}; # wallet api
       };
     };
-  } // { inherit (cardano-node) version; }
+  }  #### // { inherit (cardano-node) version; }

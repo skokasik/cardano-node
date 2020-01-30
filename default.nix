@@ -37,7 +37,7 @@ in
 let
   system = if target != "x86_64-windows" then target else builtins.currentSystem;
   crossSystem = if target == "x86_64-windows" then lib.systems.examples.mingwW64 else null;
-  pkgs = import ./nix/pkgs.nix { inherit system crossSystem; };
+  
   nixTools = import ./nix/nix-tools.nix { inherit system crossSystem; };
   inherit (commonLib) environments;
   scripts = import ./nix/scripts.nix {
@@ -48,7 +48,8 @@ let
     inherit (commonLib) pkgs;
     inherit commonLib interactive;
   };
-  dockerImage = pkgs.callPackage ./nix/docker.nix {
+  dockerImage = commonLib.pkgs.callPackage ./nix/docker.nix {
+    inherit (nixTools.nix-tools.exes) cardano-node;
   };
 in {
   inherit scripts nixosTests;
