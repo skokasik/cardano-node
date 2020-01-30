@@ -22,17 +22,11 @@
 }:
 
 let
-  defaultPort = "8090";
-  dataDir = "/data";
+  defaultPort = "3001";
 
   startScript = writeScriptBin "start-cardano-node" ''
     #!${runtimeShell}
     set -euo pipefail
-
-    # set up data volume
-    export XDG_DATA_HOME=/
-    mkdir -p ${dataDir}
-    ln -s ${dataDir} /cardano-node
 
     export LOCALE_ARCHIVE="${glibcLocales}/lib/locale/locale-archive"
     exec ${cardano-node}/bin/cardano-node "$@"
@@ -63,6 +57,5 @@ in
       ExposedPorts = {
         "${defaultPort}/tcp" = {}; # wallet api
       };
-      Volume = [ dataDir ];
     };
   } // { inherit (cardano-node) version; }
