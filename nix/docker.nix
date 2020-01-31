@@ -22,15 +22,6 @@
 }:
 
 let
-  defaultPort = "3001";
-
-  startScript = writeScriptBin "start-cardano-node" ''
-    #!${runtimeShell}
-    set -euo pipefail
-
-    export LOCALE_ARCHIVE="${glibcLocales}/lib/locale/locale-archive"
-    exec ${cardano-node}/bin/cardano-node "$@"
-  '';
 
   # Layer of tools which aren't going to change much between versions.
   baseImage = dockerTools.buildImage {
@@ -51,12 +42,23 @@ in
     fromImage = baseImage;
     contents = [
       cardano-node
-      startScript
     ];
+    created = "now";   # Set creation date to build time. Breaks reproducibility
     config = {
-      EntryPoint = [ "start-cardano-node" ];
+      EntryPoint = ''
+        "cardano-node","--config","/configuration/config.yaml",
+        "--database-path","/db","--genesis-file","/configuration/genesis.json",
+        "--host-addr","127.0.0.1","--port","3001","--socket-dir","/socket",
+        "--topology","/configuration/topology.yaml"
+      '';
       ExposedPorts = {
-        "${defaultPort}/tcp" = {}; # wallet api
+        "3001/tcp" = {};  # Cardano node to node port
+      };
+      WorkingDir = "/cardano-node";
+      Volumes = {
+        "/cardano-node" = {};
+        "node-db:/db" = {};
+        "node-socket:/socket" = {};
       };
     };
   }  #### // { inherit (cardano-node) version; }
