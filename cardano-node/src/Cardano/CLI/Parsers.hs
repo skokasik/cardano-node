@@ -7,6 +7,7 @@ module Cardano.CLI.Parsers
   , parseGenesisParameters
   , parseGenesisRelatedValues
   , parseKeyRelatedValues
+  , parseMiscellaneous
   , parseRequiresNetworkMagic
   , parseTxRelatedValues
   ) where
@@ -29,18 +30,20 @@ import           Cardano.CLI.Run
 import           Cardano.Common.Parsers
 
 import           Cardano.Binary (Annotated(..))
-import           Cardano.Chain.Common ( Address(..), BlockCount(..), Lovelace
-                                      , NetworkMagic(..), decodeAddressBase58
-                                      , mkLovelace, rationalToLovelacePortion)
+import           Cardano.Chain.Common
+                   (Address(..), BlockCount(..), Lovelace
+                   , NetworkMagic(..), decodeAddressBase58
+                   , mkLovelace, rationalToLovelacePortion)
 import           Cardano.Chain.Genesis (FakeAvvmOptions(..), TestnetBalanceOptions(..))
 import           Cardano.Chain.Slotting (EpochNumber(..))
 import           Cardano.Chain.UTxO (TxId, TxIn(..), TxOut(..))
 import           Cardano.Config.CommonCLI
-import           Cardano.Config.Types ( DelegationCertFile(..), GenesisFile(..)
-                                      , NodeAddress(..), NodeHostAddress(..), SigningKeyFile(..))
+import           Cardano.Config.Types
+                   (CBORObject(..), DelegationCertFile(..), GenesisFile(..)
+                   , NodeAddress(..), NodeHostAddress(..), SigningKeyFile(..))
 import           Cardano.Crypto (RequiresNetworkMagic(..), decodeHash)
-import           Cardano.Crypto.ProtocolMagic ( AProtocolMagic(..), ProtocolMagic
-                                              , ProtocolMagicId(..))
+import           Cardano.Crypto.ProtocolMagic
+                   (AProtocolMagic(..), ProtocolMagic, ProtocolMagicId(..))
 
 
 -- | See the rationale for cliParseBase58Address.
@@ -135,6 +138,13 @@ parseBenchmarkingCommands =
                   "Path to signing key file, for genesis UTxO using by generator."
      ]
 
+parseCBORObject :: Parser CBORObject
+parseCBORObject = asum
+  [ flagParser CBORBlockByron "byron-block"
+    "The CBOR file is a byron era block"
+  , flagParser CBORTxByron "byron-tx"
+    "The CBOR file is a byron era tx"
+  ]
 
 parseCertificateFile :: String -> String -> Parser CertificateFile
 parseCertificateFile opt desc = CertificateFile <$> parseFilePath opt desc
@@ -355,6 +365,18 @@ parseNewVerificationKeyFile :: String -> Parser NewVerificationKeyFile
 parseNewVerificationKeyFile opt =
   NewVerificationKeyFile
     <$> parseFilePath opt "Non-existent file to write the verification key to."
+
+parseMiscellaneous :: Parser ClientCommand
+parseMiscellaneous = subparser $ mconcat
+  [ commandGroup "Miscellaneous commands"
+  , metavar "Miscellaneous commands"
+  , command'
+      "pretty-print-cbor"
+      "Pretty print a CBOR file"
+      $ PrettyPrintCBOR
+          <$> parseCBORObject
+          <*> parseFilePath "filepath" "Filepath of CBOR file"
+  ]
 
 parseNumberOfInputsPerTx :: String -> String -> Parser NumberOfInputsPerTx
 parseNumberOfInputsPerTx opt desc = NumberOfInputsPerTx <$> parseIntegral opt desc

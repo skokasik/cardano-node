@@ -50,4 +50,5 @@ parseClientCommand =
           <|> parseDelegationRelatedValues
           <|> parseTxRelatedValues
           <|> parseBenchmarkingCommands
+          <|> parseMiscellaneous
           )

@@ -200,6 +200,7 @@ executable cardano-cli
                        -rtsopts
                        "-with-rtsopts=-T"
   build-depends:       base >=4.12 && <5
+                     , cardano-binary
                      , cardano-prelude
                      , cardano-node
                      , optparse-applicative
