@@ -189,7 +189,9 @@ data ClientCommand
     CBORObject
     -- ^ Type of the CBOR object
     FilePath
-
+  | PrintCBORasJSON
+    CBORObject
+    FilePath
    deriving Show
 
 runCommand :: ClientCommand -> ExceptT CliError IO ()
@@ -201,9 +203,14 @@ runCommand (PrettyPrintCBOR cborObject fp) = do
   bs <- readCBOR fp
   pprintCBOR cborObject bs
 
+runCommand (PrintCBORasJSON cborObject fp) = do
+  bs <- readCBOR fp
+  pprintCBORasJSON cborObject bs
+
 runCommand (PrettySigningKeyPublic ptcl skF) = do
   sK <- readSigningKey ptcl skF
   liftIO . putTextLn . prettyPublicKey $ Crypto.toVerification sK
+
 runCommand (MigrateDelegateKeyFrom oldPtcl oldKey newPtcl (NewSigningKeyFile newKey)) = do
   sk <- readSigningKey oldPtcl oldKey
   sDk <- hoistEither $ serialiseDelegateKey newPtcl sk

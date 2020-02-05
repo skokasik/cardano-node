@@ -142,8 +142,12 @@ parseCBORObject :: Parser CBORObject
 parseCBORObject = asum
   [ flagParser CBORBlockByron "byron-block"
     "The CBOR file is a byron era block"
+  , flagParser CBORDelegationCertificateByron "byron-delegation-certificate"
+    "The CBOR file is a byron era delegation certificate"
   , flagParser CBORTxByron "byron-tx"
     "The CBOR file is a byron era tx"
+  , flagParser CBORUpdateProposalByron "byron-update-proposal"
+    "The CBOR file is a byron era update proposal"
   ]
 
 parseCertificateFile :: String -> String -> Parser CertificateFile
@@ -374,6 +378,12 @@ parseMiscellaneous = subparser $ mconcat
       "pretty-print-cbor"
       "Pretty print a CBOR file"
       $ PrettyPrintCBOR
+          <$> parseCBORObject
+          <*> parseFilePath "filepath" "Filepath of CBOR file"
+  , command'
+      "print-json"
+      "Print a CBOR file as JSON"
+      $ PrintCBORasJSON
           <$> parseCBORObject
           <*> parseFilePath "filepath" "Filepath of CBOR file"
   ]

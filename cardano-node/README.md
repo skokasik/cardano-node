@@ -285,3 +285,13 @@ of the testnet, and lovelace amount is almost the entirety of its funds.
 # Development
 
 run *ghcid* with: `ghcid -c "cabal v2-repl exe:cardano-node --reorder-goals"`
+
+# Debugging
+
+### Pretty printing CBOR encoded files
+
+It may be useful to print the on chain representations of blocks, delegation certificates, txs and update proposals. There are two commands that do this:
+
+`cabal exec cardano-cli -- print-json --byron-block --filepath CBOREncodedBlockFile`
+
+`cabal exec cardano-cli -- pretty-print-cbor --byron-tx --filepath CBOREncodedTxFile`

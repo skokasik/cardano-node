@@ -13,6 +13,7 @@ module Cardano.CLI.Ops
   ( decodeCBOR
   , deserialiseDelegateKey
   , pprintCBOR
+  , pprintCBORasJSON
   , readCBOR
   , serialiseDelegationCert
   , serialiseDelegateKey
@@ -33,7 +34,9 @@ import           Codec.CBOR.Read (DeserialiseFailure, deserialiseFromBytes)
 import           Codec.CBOR.Write (toLazyByteString)
 import           Control.Monad.Trans.Except.Extra
                    (firstExceptT, handleIOExceptT, hoistEither, left)
+import           Data.Aeson (ToJSON, encode)
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.ByteString.Lazy.Char8 as LBC
 import qualified Data.Text as T
 import qualified Text.JSON.Canonical as CanonicalJSON
 import           Test.Cardano.Prelude (canonicalEncodePretty)
@@ -112,6 +115,21 @@ pprintCBOR cborObject bs =
  where
   pprint :: ToCBOR a => a -> ExceptT CliError IO ()
   pprint x = liftIO . putStrLn . prettyHexEnc $ toCBOR x
+
+pprintCBORasJSON :: CBORObject -> LByteString -> ExceptT CliError IO ()
+pprintCBORasJSON cborObject bs =
+  case cborObject of
+    CBORBlockByron ->
+      decodeCBOR CBORBlockByron bs (fromCBORABlockOrBoundary $ EpochSlots 21600) >>= pprint
+    CBORDelegationCertificateByron ->
+      decodeCBOR CBORDelegationCertificateByron bs (fromCBOR :: Decoder s Delegation.Certificate) >>= pprint
+    CBORTxByron ->
+      decodeCBOR CBORTxByron bs (fromCBOR :: Decoder s UTxO.Tx) >>= pprint
+    CBORUpdateProposalByron ->
+      decodeCBOR CBORTxByron bs (fromCBOR :: Decoder s Proposal) >>= pprint
+ where
+  pprint :: ToJSON a => a -> ExceptT CliError IO ()
+  pprint x = liftIO . putStrLn . LBC.unpack $ encode x
 
 readCBOR :: FilePath -> ExceptT CliError IO LByteString
 readCBOR fp =
