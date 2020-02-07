@@ -48,7 +48,7 @@ let
     table = {
       x86_64-linux = import ./. { system = "x86_64-linux"; };
       x86_64-darwin = import ./. { system = "x86_64-darwin"; };
-      x86_64-windows = import ./. { system = "x86_64-linux"; crossSystem = "x86_64-windows"; };
+      #x86_64-windows = import ./. { system = "x86_64-linux"; crossSystem = "x86_64-windows"; };
     };
   in table.${system};
   default = getArchDefault builtins.currentSystem;
@@ -99,11 +99,12 @@ let
       map (drv: drv // { inherit packageName; }) (collectTests' package)
     ) ds);
 
-  inherit (systems.examples) mingwW64 musl64;
+  #inherit (systems.examples) mingwW64 musl64;
 
   jobs = {
     native = mapTestOn (__trace (__toJSON (packagePlatforms project)) (packagePlatforms project));
-    "${mingwW64.config}" = mapTestOnCross mingwW64 (packagePlatformsCross project);
+    # TODO: fix broken evals https://github.com/input-output-hk/haskell.nix/pull/382
+    #"${mingwW64.config}" = mapTestOnCross mingwW64 (packagePlatformsCross project);
     # TODO: fix broken evals
     #musl64 = mapTestOnCross musl64 (packagePlatformsCross project);
   } // extraBuilds // (mkRequiredJob (
