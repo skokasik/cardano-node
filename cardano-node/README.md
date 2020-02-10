@@ -246,6 +246,8 @@ options.
 
 ### Creation
 
+A simple transaction with one input and one output can be created using the `create-tx` command.
+
 Transactions can be created via the  `issue-genesis-utxo-expenditure` & `issue-utxo-expenditure` commands.
 
 The easiest way to create a transaction is via the `scripts/issue-genesis-utxo-expenditure.sh` script as follows:

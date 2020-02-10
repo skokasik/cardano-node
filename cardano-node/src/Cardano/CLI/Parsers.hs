@@ -1,4 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Cardano.CLI.Parsers
   ( command'
@@ -15,8 +16,9 @@ import           Cardano.Prelude hiding (option)
 import           Prelude (String)
 
 import qualified Control.Arrow
+import           Data.Bifunctor (first)
 import qualified Data.List.NonEmpty as NE
-import           Data.Text (pack)
+import           Data.Text (pack, unpack)
 import           Data.Time (UTCTime)
 import           Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import           Network.Socket (PortNumber)
@@ -71,7 +73,7 @@ cliParsePort = fromIntegral
 -- | See the rationale for cliParseBase58Address.
 cliParseTxId :: String -> TxId
 cliParseTxId =
-  either (panic . ("Bad Lovelace value: " <>) . show) identity
+  either (panic . ("TxId hash decode failure: " <>) . show) identity
   . decodeHash . pack
 
 command' :: String -> String -> Parser a -> Mod CommandFields a
@@ -389,6 +391,15 @@ parseSigningKeyFile opt desc = SigningKeyFile <$> parseFilePath opt desc
 parseSigningKeysFiles :: String -> String -> Parser [SigningKeyFile]
 parseSigningKeysFiles opt desc = some $ SigningKeyFile <$> parseFilePath opt desc
 
+parseTargetOutputAddress :: Parser Address
+parseTargetOutputAddress =
+  cliParseBase58Address . pack
+    <$> strOption ( long "target-address"
+                      <> metavar "ADDRESS"
+                      <> help "Target output address"
+                  )
+
+
 parseTargetNodeAddress :: String -> String -> Parser NodeAddress
 parseTargetNodeAddress optname desc =
   option
@@ -442,6 +453,28 @@ parseTxIn =
     <> metavar "(TXID,INDEX)"
     <> help "Transaction input is a pair of an UTxO TxId and a zero-based output index."
 
+parseTxInput :: Parser TxIn
+parseTxInput =
+ filterTxInput <$> strOption
+               ( long "tx-input"
+                   <> metavar "TXINPUT"
+                   <> help "Transaction input - specified as txid,index"
+               )
+
+filterTxInput :: String -> TxIn
+filterTxInput ins = do
+  --parse txid and index
+  let (txidStr, indexStr) = filter (/= ',') <$> break (== ',') ins
+
+  let index = maybe (panic $ toS txidStr <> " is not a valid Word32 number.") (fromIntegral :: Integer -> Word32) $ readMaybe indexStr
+
+  case first unpack $ decodeHash $ pack txidStr :: Either String TxId of
+    Left e -> panic $ toS e
+    Right txid -> TxInUtxo txid index
+
+
+
+
 parseTxOut :: Parser TxOut
 parseTxOut =
   option
@@ -459,6 +492,17 @@ parseTxRelatedValues =
   subparser $ mconcat
     [ commandGroup "Transaction related commands"
     , metavar "Transaction related commands"
+    , command'
+        "create-tx"
+        "Create a transaction with a single tx input, a target address and signing key."
+        $ CreateTx
+            <$> parseFilePath "output-name" "Filename for the tx"
+            <*> parseConfigFile
+            <*> parseGenesisFile "genesis-json"
+            <*> parseTxInput
+            <*> parseTargetOutputAddress
+            <*> parseLovelace "amount" "Lovelaces to spend."
+            <*> parseSigningKeyFile "signing-key" "Private key used to sign transaction inputs."
     , command'
         "submit-tx"
         "Submit a raw, signed transaction, in its on-wire representation."

@@ -12,6 +12,7 @@ module Cardano.CLI.Tx
   , normalByronTxToGenTx
   , txSpendGenesisUTxOByronPBFT
   , issueGenesisUTxOExpenditure
+  , signTxId
   , txSpendUTxOByronPBFT
   , issueUTxOExpenditure
   , nodeSubmitTx

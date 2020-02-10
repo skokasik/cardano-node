@@ -33,6 +33,7 @@ import           Cardano.Prelude hiding (option, trace)
 import           Control.Monad.Trans.Except (ExceptT)
 import           Control.Monad.Trans.Except.Extra (hoistEither, firstExceptT)
 import qualified Data.ByteString.Lazy as LB
+import           Data.List.NonEmpty (fromList)
 import           Data.Semigroup ((<>))
 import           Data.Text (pack)
 import qualified Data.Text.Lazy.IO as TL
@@ -140,6 +141,14 @@ data ClientCommand
 
     -----------------------------------
 
+  | CreateTx
+    FilePath
+    FilePath
+    GenesisFile
+    UTxO.TxIn
+    Common.Address
+    Common.Lovelace
+    SigningKeyFile
   | SubmitTx
     TxFile
     -- ^ Filepath of transaction to submit.
@@ -191,6 +200,18 @@ data ClientCommand
     [SigningKeyFile]
    deriving Show
 runCommand :: ClientCommand -> ExceptT CliError IO ()
+runCommand (CreateTx txFileName configFp genFile input@(UTxO.TxInUtxo txid _) targetAddr amount sKeyFile) = do
+  nc <- liftIO $ parseNodeConfiguration configFp
+  (genData, _) <- readGenesis genFile
+  sKey <- readSigningKey (ncProtocol nc) sKeyFile
+  let txwitness = signTxId (Genesis.gdProtocolMagicId genData) sKey txid
+  let tx = UTxO.UnsafeTx
+            (fromList [input])
+            (fromList [UTxO.TxOut targetAddr amount])
+            (Common.mkAttributes ())
+  let aTxAuxBS = UTxO.annotateTxAux $ UTxO.mkTxAux tx (pure txwitness)
+  liftIO . ensureNewFileLBS txFileName $ toCborTxAux aTxAuxBS
+
 runCommand (Genesis outDir params ptcl) = do
   gen <- mkGenesis params
   dumpGenesis ptcl outDir `uncurry` gen
