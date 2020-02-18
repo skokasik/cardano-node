@@ -1,4 +1,4 @@
-resolver: https://raw.githubusercontent.com/input-output-hk/cardano-prelude/fa7a16291d3e93b068d9b13620fc81c88b5600f0/snapshot.yaml
+resolver: https://raw.githubusercontent.com/input-output-hk/cardano-prelude/57fcc83702b91e0a7aecdb32c99ab1d8c1c444d0/snapshot.yaml
 compiler: ghc-8.6.5
 
 packages:
@@ -26,7 +26,6 @@ extra-deps:
   - hedgehog-1.0.2
   - micro-recursion-schemes-5.0.2.2
   - streaming-binary-0.3.0.1
-  - cborg-0.2.2.1
   - canonical-json-0.6.0.0
   - brick-0.47
   - binary-0.8.7.0
@@ -73,7 +72,7 @@ extra-deps:
       - byron/chain/executable-spec
 
   - git: https://github.com/input-output-hk/cardano-prelude
-    commit: fa7a16291d3e93b068d9b13620fc81c88b5600f0
+    commit: 57fcc83702b91e0a7aecdb32c99ab1d8c1c444d0
     subdirs:
       - .
       - test
@@ -131,6 +130,12 @@ extra-deps:
         - typed-protocols
         - typed-protocols-examples
         - ouroboros-network-framework
+
+    # Includes cbor pretty printing fix
+  - git: https://github.com/well-typed/cborg
+    commit: 42a83192749774268337258f4f94c97584b80ca6
+    subdirs:
+        - cborg
 
 nix:
   shell-file: nix/stack-shell.nix
