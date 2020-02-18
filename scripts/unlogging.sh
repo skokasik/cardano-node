@@ -109,7 +109,8 @@ function headers_seen_messages_to_internal() {
 
 function rewrite_log_header_messages() {
         local input="$1"
-        fgrep 'ChainSyncServerEvent.TraceChainSyncServerReadBlocked.AddBlock' ${input}
+        # fgrep 'ChainSyncServerEvent.TraceChainSyncServerReadBlocked.AddBlock' ${input}
+        fgrep 'TraceAddBlockEvent.TryAddToCurrentChain' ${input}
 }
 
 function rewrite_header_messages_to_internal_raw() {
@@ -155,7 +156,7 @@ function legacy_merge_internal() {
 
 function cluster_log_ip_rewrite_pid() {
         local input="$1" ip="$2"
-        grep "I am Node NodeAddress {naHostAddress = NodeHostAddress {getAddress = Just ${ip}}," "${input}" | head -n1 | cut -d'[' -f3 |cut -d']' -f1
+        grep "naHostAddress = NodeHostAddress {getAddress = Just ${ip}}," "${input}" | head -n1 | cut -d'[' -f3 |cut -d']' -f1
 }
 
 function cluster_log_ip_proxy_pid() {
