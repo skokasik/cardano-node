@@ -369,7 +369,7 @@ localInitiatorNetworkApplication proxy pInfoConfig =
   localTxSubmissionCodec :: Codec (LocalTxSubmission (GenTx blk) (ApplyTxErr blk)) DeserialiseFailure m LB.ByteString
   localTxSubmissionCodec = pcLocalTxSubmissionCodec . protocolCodecs pInfoConfig $ mostRecentNetworkProtocolVersion proxy
 
-
+-- using ChainSync is a hack, and this should be rewritten with LocalStateQuery protocol
 chainSyncClient
   :: forall blk m . (Condense (HeaderHash blk), MonadIO m)
   => ChainSyncClient (Serialised blk) (Tip blk) m ()

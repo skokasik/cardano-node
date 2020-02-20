@@ -282,6 +282,17 @@ source and target signing keys and lovelace value to send.
 The target address defaults to the 1-st richman key (`configuration/delegate-keys.001.key`)
 of the testnet, and lovelace amount is almost the entirety of its funds.
 
+# Local node queries
+
+You can query the tip of your local node via the `get-tip` command as follows
+
+1. Open `tmux`
+2. Run `cabal build cardano-node`
+3. Run `./scripts/shelley-testnet-live.sh`
+4. `cabal exec cardano-cli -- get-tip --config configuration/log-config-0.liveview.yaml --genesis-json configuration/genesis/genesis.json --socket-path socket/0`
+
+You will see output from stdout in this format `blockhash@slotnumber`
+
 # Development
 
 run *ghcid* with: `ghcid -c "cabal v2-repl exe:cardano-node --reorder-goals"`
